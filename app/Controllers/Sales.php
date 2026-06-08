@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Libraries\Barcode_lib;
 use App\Libraries\Email_lib;
+use App\Libraries\PraFbrService;
 use App\Libraries\Sale_lib;
 use App\Libraries\Tax_lib;
 use App\Libraries\Token_lib;
@@ -323,6 +324,19 @@ class Sales extends Secure_Controller
     public function postSetComment(): ResponseInterface
     {
         $this->sale_lib->set_comment($this->request->getPost('comment', FILTER_SANITIZE_FULL_SPECIAL_CHARS));
+        return $this->response->setJSON(['success' => true]);
+    }
+
+    /**
+     * Persist BigM custom sale fields from the register form.
+     *
+     * @return ResponseInterface
+     * @noinspection PhpUnused
+     */
+    public function postSetBigmFields(): ResponseInterface
+    {
+        $this->apply_bigm_fields_from_request();
+
         return $this->response->setJSON(['success' => true]);
     }
 
@@ -768,6 +782,10 @@ class Sales extends Secure_Controller
 
         $data['amount_change'] = $data['amount_due'] * -1;
 
+        $this->apply_bigm_fields_from_request();
+        $tax_details = $this->apply_bigm_tax_and_totals($data, $tax_details);
+        $this->populate_bigm_register_data($data);
+
         if ($data['amount_change'] > 0) {
             // Save cash refund to the cash payment transaction if found, if not then add as new Cash transaction
 
@@ -814,7 +832,7 @@ class Sales extends Secure_Controller
 
                 // Save the data to the sales table
                 $data['sale_id_num'] = $this->sale->save_value($sale_id, $data['sale_status'], $data['cart'], $customer_id, $employee_id, $data['comments'], $invoice_number, $work_order_number, $quote_number, $sale_type, $data['payments'], $data['dinner_table'], $tax_details);
-                $data['sale_id'] = 'POS ' . $data['sale_id_num'];
+                $data['sale_id'] = 'BIGM ' . $data['sale_id_num'];
 
                 // Resort and filter cart lines for printing
                 $data['cart'] = $this->sale_lib->sort_and_filter_cart($data['cart']);
@@ -823,6 +841,7 @@ class Sales extends Secure_Controller
                     $data['error_message'] = lang('Sales.transaction_failed');
                     return $this->_reload($data);
                 } else {
+                    $this->finalize_bigm_fiscal_data($data);
                     $data['barcode'] = $this->barcode_lib->generate_receipt_barcode($data['sale_id']);
                     $this->sale_lib->clear_all();
                     return view('sales/' . $invoice_view, $data);
@@ -899,7 +918,7 @@ class Sales extends Secure_Controller
 
             $data['sale_id_num'] = $this->sale->save_value($sale_id, $data['sale_status'], $data['cart'], $customer_id, $employee_id, $data['comments'], $invoice_number, $work_order_number, $quote_number, $sale_type, $data['payments'], $data['dinner_table'], $tax_details);
 
-            $data['sale_id'] = 'POS ' . $data['sale_id_num'];
+            $data['sale_id'] = 'BIGM ' . $data['sale_id_num'];
 
             $data['cart'] = $this->sale_lib->sort_and_filter_cart($data['cart']);
 
@@ -907,12 +926,13 @@ class Sales extends Secure_Controller
                 $data['error_message'] = lang('Sales.transaction_failed');
                 return $this->_reload($data);
             } else {
+                $this->finalize_bigm_fiscal_data($data);
                 $data['barcode'] = $this->barcode_lib->generate_receipt_barcode($data['sale_id']);
 
                 // Validate receipt template to prevent path traversal
                 $receipt_template = $this->config['receipt_template'] ?? '';
                 if (!Sale_lib::isValidReceiptTemplate($receipt_template)) {
-                    $receipt_template = 'receipt_default';
+                    $receipt_template = 'receipt_bigm';
                 }
                 $data['receipt_template_view'] = $receipt_template;
 
@@ -945,7 +965,7 @@ class Sales extends Secure_Controller
             $text = $this->config['invoice_email_message'];
             $tokens = [
                 new Token_invoice_sequence($number),
-                new Token_invoice_count('POS ' . $sale_data['sale_id']),
+                new Token_invoice_count('BIGM ' . $sale_data['sale_id']),
                 new Token_customer((array)$sale_data)
             ];
             $text = $this->token_lib->render($text, $tokens);
@@ -1129,8 +1149,12 @@ class Sales extends Secure_Controller
         $this->_load_customer_data($this->sale_lib->get_customer(), $data);
 
         $data['sale_id_num'] = $sale_id;
-        $data['sale_id'] = 'POS ' . $sale_id;
+        $data['sale_id'] = 'BIGM ' . $sale_id;
         $data['comments'] = $sale_info['comment'];
+        $bigmFields = $this->sale->get_bigm_sale_fields($sale_id);
+        if ($bigmFields !== null) {
+            $this->populate_bigm_register_data($data, $bigmFields);
+        }
         $data['invoice_number'] = $sale_info['invoice_number'];
         $data['quote_number'] = $sale_info['quote_number'];
         $data['sale_status'] = $sale_info['sale_status'];
@@ -1243,6 +1267,10 @@ class Sales extends Secure_Controller
         }
 
         $data['amount_change'] = $data['amount_due'] * -1;
+
+        $this->apply_bigm_fields_from_request();
+        $tax_details = $this->apply_bigm_tax_and_totals($data, $tax_details);
+        $this->populate_bigm_register_data($data);
 
         $data['comment'] = $this->sale_lib->get_comment();
         $data['email_receipt'] = $this->sale_lib->is_email_receipt();
@@ -1783,5 +1811,78 @@ class Sales extends Secure_Controller
         }
 
         return null;
+    }
+
+    private function apply_bigm_fields_from_request(): void
+    {
+        if ($this->request->getPost('walkin_name') !== null) {
+            $this->sale_lib->set_walkin_name($this->request->getPost('walkin_name', FILTER_SANITIZE_FULL_SPECIAL_CHARS));
+        }
+
+        if ($this->request->getPost('customer_phone') !== null) {
+            $this->sale_lib->set_walkin_phone($this->request->getPost('customer_phone', FILTER_SANITIZE_FULL_SPECIAL_CHARS));
+        }
+
+        if ($this->request->getPost('customer_cnic') !== null) {
+            $this->sale_lib->set_walkin_cnic($this->request->getPost('customer_cnic', FILTER_SANITIZE_FULL_SPECIAL_CHARS));
+        }
+    }
+
+    /**
+     * Apply BigM's card tax rule (5% GST on card payments instead of the
+     * standard item tax) to the totals before the sale is saved/printed.
+     *
+     * @param array<string, mixed> $data
+     * @param array<int, mixed> $taxDetails
+     * @return array<int, mixed>
+     */
+    private function apply_bigm_tax_and_totals(array &$data, array $taxDetails): array
+    {
+        if ($this->sale_lib->payments_include_card($data['payments']) || $this->sale_lib->is_card_payment($data['selected_payment_type'] ?? null)) {
+            $taxDetails = $this->sale_lib->apply_card_tax_details($taxDetails, $data['cart']);
+            $data['taxes'] = $taxDetails[0];
+            $data['total'] = $this->sale_lib->get_card_total();
+            $data['amount_due'] = bcsub($data['total'], (string) ($data['payments_total'] ?? 0), totals_decimals());
+            $data['amount_change'] = bcmul($data['amount_due'], '-1', totals_decimals());
+        }
+
+        return $taxDetails;
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     * @param array<string, mixed>|null $storedFields
+     */
+    private function populate_bigm_register_data(array &$data, ?array $storedFields = null): void
+    {
+        if ($storedFields === null) {
+            $data['walkin_name'] = $this->sale_lib->get_walkin_name();
+            $data['walkin_phone'] = $this->sale_lib->get_walkin_phone();
+            $data['walkin_cnic'] = $this->sale_lib->get_walkin_cnic();
+            $data['pra_invoice_number'] = '';
+            $data['fbr_invoice_number'] = '';
+        } else {
+            $data['walkin_name'] = $storedFields['walkin_name'];
+            $data['walkin_phone'] = $storedFields['walkin_phone'];
+            $data['walkin_cnic'] = $storedFields['walkin_cnic'];
+            $data['pra_invoice_number'] = $storedFields['pra_invoice_number'] ?? '';
+            $data['fbr_invoice_number'] = $storedFields['fbr_invoice_number'] ?? '';
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    private function finalize_bigm_fiscal_data(array &$data): void
+    {
+        $praFbrService = new PraFbrService();
+        $fiscalData = $praFbrService->requestInvoiceNumbers($data);
+        $this->sale->save_bigm_fiscal_numbers(
+            (int) $data['sale_id_num'],
+            $fiscalData['pra_invoice_number'],
+            $fiscalData['fbr_invoice_number']
+        );
+        $data['pra_invoice_number'] = $fiscalData['pra_invoice_number'];
+        $data['fbr_invoice_number'] = $fiscalData['fbr_invoice_number'];
     }
 }

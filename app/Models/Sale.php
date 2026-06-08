@@ -28,7 +28,12 @@ class Sale extends Model
         'invoice_number',
         'dinner_table_id',
         'work_order_number',
-        'sale_type'
+        'sale_type',
+        'walkin_name',
+        'walkin_phone',
+        'walkin_cnic',
+        'pra_invoice_number',
+        'fbr_invoice_number',
     ];
 
     public function __construct()
@@ -416,16 +421,16 @@ class Sale extends Model
         $config = config(OSPOS::class)->settings;
 
         if (!empty($receiptSaleId)) {
-            // POS #
+            // BIGM # (legacy POS # remains accepted for compatibility)
             $pieces = explode(' ', trim($receiptSaleId));
 
-            if (count($pieces) == 2 && strtoupper($pieces[0]) === 'POS' && ctype_digit($pieces[1])) {
+            if (count($pieces) == 2 && in_array(strtoupper($pieces[0]), ['BIGM', 'POS'], true) && ctype_digit($pieces[1])) {
                 return $this->exists((int)$pieces[1]);
             } elseif ($config['invoice_enable']) {
                 $saleInfo = $this->get_sale_by_invoice_number($receiptSaleId);
 
                 if ($saleInfo->getNumRows() > 0) {
-                    $receiptSaleId = 'POS ' . $saleInfo->getRow()->sale_id;
+                    $receiptSaleId = 'BIGM ' . $saleInfo->getRow()->sale_id;
 
                     return true;
                 }
@@ -547,6 +552,8 @@ class Sale extends Model
             return -1;    // TODO: Replace -1 with a constant
         }
 
+        $sale_lib = new Sale_lib();
+
         $sales_data = [
             'sale_time'         => date('Y-m-d H:i:s'),
             'customer_id'       => $customer->exists($customer_id) ? $customer_id : null,
@@ -557,7 +564,10 @@ class Sale extends Model
             'quote_number'      => $quote_number,
             'work_order_number' => $work_order_number,
             'dinner_table_id'   => $dinner_table_id,
-            'sale_type'         => $sale_type
+            'sale_type'         => $sale_type,
+            'walkin_name'       => $sale_lib->get_walkin_name() ?: null,
+            'walkin_phone'      => $sale_lib->get_walkin_phone() ?: null,
+            'walkin_cnic'       => $sale_lib->get_walkin_cnic() ?: null,
         ];
 
         // Run these queries as a transaction, we want to make sure we do all or nothing
@@ -652,7 +662,7 @@ class Sale extends Model
                 }
 
                 // Inventory Count Details
-                $sale_remarks = 'POS ' . $sale_id;    // TODO: Use string interpolation here.
+                $sale_remarks = 'POS ' . $sale_id;    // Internal inventory key; must match Sales delete/date-sync lookups.
                 $inv_data = [
                     'trans_date'      => date('Y-m-d H:i:s'),
                     'trans_items'     => $item_data['item_id'],
@@ -685,6 +695,33 @@ class Sale extends Model
         $this->db->transComplete();
 
         return $this->db->transStatus() ? $sale_id : -1;
+    }
+
+    /**
+     * Persist PRA/FBR invoice numbers after fiscal API calls.
+     */
+    public function save_bigm_fiscal_numbers(int $sale_id, string $praInvoiceNumber, string $fbrInvoiceNumber): bool
+    {
+        return $this->update($sale_id, [
+            'pra_invoice_number' => $praInvoiceNumber !== '' ? $praInvoiceNumber : null,
+            'fbr_invoice_number' => $fbrInvoiceNumber !== '' ? $fbrInvoiceNumber : null,
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function get_bigm_sale_fields(int $sale_id): ?array
+    {
+        $builder = $this->db->table('sales');
+        $builder->select(
+            'walkin_name, walkin_phone, walkin_cnic, pra_invoice_number, fbr_invoice_number'
+        );
+        $builder->where('sale_id', $sale_id);
+
+        $row = $builder->get()->getRowArray();
+
+        return $row ?: null;
     }
 
     /**

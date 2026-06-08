@@ -110,8 +110,11 @@ class Sale_lib
 
     private const ALLOWED_RECEIPT_TEMPLATES = [
         'receipt_default',
-        'receipt_short'
+        'receipt_short',
+        'receipt_bigm',
     ];
+
+    private const CARD_TAX_PERCENT = '5.00';
 
     public function get_invoice_type_options(): array
     {
@@ -1426,6 +1429,7 @@ class Sale_lib
         $this->empty_payments();
         $this->remove_customer();
         $this->clear_cash_flags();
+        $this->clear_bigm_fields();
     }
 
     /**
@@ -1721,5 +1725,156 @@ class Sale_lib
         $cash_rounding_code = $this->config['cash_rounding_code'];
 
         return Rounding_mode::round_number($cash_rounding_code, (float)$total, $cash_decimals);
+    }
+
+    // -------------------------------------------------------------------------
+    // BigM Restaurant customizations
+    // -------------------------------------------------------------------------
+
+    public function set_walkin_name(?string $name): void
+    {
+        $this->session->set('bigm_walkin_name', $name ?? '');
+    }
+
+    public function get_walkin_name(): string
+    {
+        return (string) ($this->session->get('bigm_walkin_name') ?? '');
+    }
+
+    public function set_walkin_phone(?string $phone): void
+    {
+        $this->session->set('bigm_walkin_phone', $phone ?? '');
+    }
+
+    public function get_walkin_phone(): string
+    {
+        return (string) ($this->session->get('bigm_walkin_phone') ?? '');
+    }
+
+    public function set_walkin_cnic(?string $cnic): void
+    {
+        $this->session->set('bigm_walkin_cnic', $cnic ?? '');
+    }
+
+    public function get_walkin_cnic(): string
+    {
+        return (string) ($this->session->get('bigm_walkin_cnic') ?? '');
+    }
+
+    public function clear_bigm_fields(): void
+    {
+        $this->session->remove('bigm_walkin_name');
+        $this->session->remove('bigm_walkin_phone');
+        $this->session->remove('bigm_walkin_cnic');
+    }
+
+    public function is_card_payment(?string $paymentType = null): bool
+    {
+        $paymentType ??= $this->get_payment_type();
+        $cardTypes = [lang('Sales.credit'), lang('Sales.debit')];
+
+        return in_array($paymentType, $cardTypes, true);
+    }
+
+    public function payments_include_card(array $payments): bool
+    {
+        $cardTypes = [lang('Sales.credit'), lang('Sales.debit')];
+
+        foreach ($payments as $payment) {
+            $type = is_array($payment) ? ($payment['payment_type'] ?? '') : '';
+            foreach ($cardTypes as $cardType) {
+                if ($type === $cardType || str_starts_with($type, $cardType . ':')) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return array<string, array<string, mixed>>
+     */
+    public function get_card_taxes_summary(): array
+    {
+        $customerId = $this->get_customer();
+        $customer = $this->customer->get_info($customerId);
+
+        if (!$customer->taxable && $customerId != -1) {
+            return [];
+        }
+
+        $taxAmount = '0';
+        $taxBasis = '0';
+        foreach ($this->get_cart() as $item) {
+            $basis = $this->get_item_total($item['quantity'], $item['price'], $item['discount'], $item['discount_type'], true);
+            $taxBasis = bcadd($taxBasis, $basis);
+            $taxAmount = bcadd($taxAmount, bcmul($basis, bcdiv(self::CARD_TAX_PERCENT, '100')));
+        }
+
+        $taxGroupIndex = 'X' . self::CARD_TAX_PERCENT . '% GST';
+
+        return [
+            $taxGroupIndex => [
+                'sale_id'         => -1,
+                'tax_type'        => Tax_lib::TAX_TYPE_EXCLUDED,
+                'tax_group'       => 'GST',
+                'sale_tax_basis'  => $taxBasis,
+                'sale_tax_amount' => $taxAmount,
+                'print_sequence'  => 1,
+                'name'            => 'GST',
+                'tax_rate'        => self::CARD_TAX_PERCENT,
+                'rounding_code'   => Rounding_mode::HALF_UP,
+            ],
+        ];
+    }
+
+    public function get_card_subtotal(): string
+    {
+        return $this->calculate_subtotal(true);
+    }
+
+    public function get_card_total(): string
+    {
+        $total = $this->get_card_subtotal();
+
+        if (!$this->config['tax_included']) {
+            foreach ($this->get_card_taxes_summary() as $tax) {
+                $total = bcadd($total, $tax['sale_tax_amount']);
+            }
+        }
+
+        return $total;
+    }
+
+    /**
+     * Force 5% GST on item-level tax rows when paying by card.
+     */
+    public function apply_card_tax_details(array $taxDetails, array $cart): array
+    {
+        $cartByLine = [];
+        foreach ($cart as $item) {
+            $cartByLine[$item['line'] . ':' . $item['item_id']] = $item;
+        }
+
+        if (!empty($taxDetails[1])) {
+            foreach ($taxDetails[1] as $index => $taxItem) {
+                $lineKey = $taxItem['line'] . ':' . $taxItem['item_id'];
+                $item = $cartByLine[$lineKey] ?? null;
+
+                if ($item === null) {
+                    continue;
+                }
+
+                $basis = $this->get_item_total($item['quantity'], $item['price'], $item['discount'], $item['discount_type'], true);
+                $taxDetails[1][$index]['name'] = self::CARD_TAX_PERCENT . '% GST';
+                $taxDetails[1][$index]['percent'] = self::CARD_TAX_PERCENT;
+                $taxDetails[1][$index]['item_tax_amount'] = bcmul($basis, bcdiv(self::CARD_TAX_PERCENT, '100'));
+            }
+        }
+
+        $taxDetails[0] = $this->get_card_taxes_summary();
+
+        return $taxDetails;
     }
 }

@@ -29,6 +29,9 @@
  * @var array $payments
  * @var string $mode_label
  * @var string $comment
+ * @var string $walkin_name
+ * @var string $walkin_phone
+ * @var string $walkin_cnic
  * @var bool $print_after_sale
  * @var bool $email_receipt
  * @var bool $price_work_orders
@@ -402,6 +405,23 @@ helper('url');
                 </tr>
             </table>
 
+            <div id="bigm_sale_fields" class="container-fluid" style="margin-bottom: 10px;">
+                <div class="row">
+                    <div class="col-xs-4 form-group form-group-sm">
+                        <label for="walkin_name">Walk-in Name</label>
+                        <?= form_input(['name' => 'walkin_name', 'id' => 'walkin_name', 'class' => 'form-control input-sm bigm-field', 'value' => $walkin_name ?? '']) ?>
+                    </div>
+                    <div class="col-xs-4 form-group form-group-sm">
+                        <label for="customer_phone">Walk-in Phone</label>
+                        <?= form_input(['name' => 'customer_phone', 'id' => 'customer_phone', 'class' => 'form-control input-sm bigm-field', 'value' => $walkin_phone ?? '']) ?>
+                    </div>
+                    <div class="col-xs-4 form-group form-group-sm">
+                        <label for="customer_cnic">Walk-in CNIC</label>
+                        <?= form_input(['name' => 'customer_cnic', 'id' => 'customer_cnic', 'class' => 'form-control input-sm bigm-field', 'value' => $walkin_cnic ?? '']) ?>
+                    </div>
+                </div>
+            </div>
+
             <div id="payment_details">
                 <?php if ($payments_cover_total) { // Show Complete sale button instead of Add Payment if there is no amount due left ?>
                     <?= form_open("$controller_name/addPayment", ['id' => 'add_payment_form', 'class' => 'form-horizontal']) ?>
@@ -717,6 +737,16 @@ helper('url');
             });
         });
 
+        function postBigmFields() {
+            $.post("<?= esc(site_url("$controller_name/setBigmFields")) ?>", {
+                walkin_name: $('#walkin_name').val(),
+                customer_phone: $('#customer_phone').val(),
+                customer_cnic: $('#customer_cnic').val()
+            });
+        }
+
+        $('.bigm-field').on('change keyup', postBigmFields);
+
         <?php if ($config['invoice_enable']) { ?>
             $('#sales_invoice_number').keyup(function() {
                 $.post("<?= esc(site_url("$controller_name/setInvoiceNumber")) ?>", {
@@ -744,14 +774,25 @@ helper('url');
             });
         });
 
-        $('#finish_sale_button').click(function() {
-            $('#buttons_form').attr('action', "<?= "$controller_name/complete" ?>");
-            $('#buttons_form').submit();
+        function completeSale() {
+            $.post("<?= esc(site_url("$controller_name/setBigmFields")) ?>", {
+                walkin_name: $('#walkin_name').val(),
+                customer_phone: $('#customer_phone').val(),
+                customer_cnic: $('#customer_cnic').val()
+            }).always(function() {
+                $('#buttons_form').attr('action', "<?= "$controller_name/complete" ?>");
+                $('#buttons_form').submit();
+            });
+        }
+
+        $('#finish_sale_button').click(function(e) {
+            e.preventDefault();
+            completeSale();
         });
 
-        $('#finish_invoice_quote_button').click(function() {
-            $('#buttons_form').attr('action', "<?= "$controller_name/complete" ?>");
-            $('#buttons_form').submit();
+        $('#finish_invoice_quote_button').click(function(e) {
+            e.preventDefault();
+            completeSale();
         });
 
         $('#suspend_sale_button').click(function() {

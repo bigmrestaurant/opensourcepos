@@ -40,8 +40,10 @@ class Session extends BaseConfig
      *
      * The number of SECONDS you want the session to last.
      * Setting to 0 (zero) means expire when the browser is closed.
+     *
+     * BigM: 86400 = 24 hours so in-store POS staff are not logged out mid-shift.
      */
-    public int $expiration = 7200;
+    public int $expiration = 86400;
 
     /**
      * --------------------------------------------------------------------------
