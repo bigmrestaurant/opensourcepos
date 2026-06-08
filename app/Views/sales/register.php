@@ -372,6 +372,30 @@ helper('url');
             <?php } ?>
         <?= form_close() ?>
 
+        <?php if (!isset($customer)) { ?>
+            <div id="bigm_sale_fields" class="panel panel-default" style="margin-top: 10px; margin-bottom: 10px;">
+                <div class="panel-heading" style="padding: 6px 10px; font-weight: bold;">
+                    <span class="glyphicon glyphicon-user">&nbsp;</span>Walk-in Customer
+                </div>
+                <div class="panel-body" style="padding: 8px 10px;">
+                    <div class="form-group form-group-sm" style="margin-bottom: 6px;">
+                        <label for="walkin_name" class="control-label">Name</label>
+                        <?= form_input(['name' => 'walkin_name', 'id' => 'walkin_name', 'class' => 'form-control input-sm bigm-field', 'value' => $walkin_name ?? '', 'placeholder' => 'Walk-in name']) ?>
+                    </div>
+                    <div class="row">
+                        <div class="col-xs-6 form-group form-group-sm" style="margin-bottom: 0;">
+                            <label for="customer_phone" class="control-label">Phone</label>
+                            <?= form_input(['name' => 'customer_phone', 'id' => 'customer_phone', 'class' => 'form-control input-sm bigm-field', 'value' => $walkin_phone ?? '', 'placeholder' => 'Phone #']) ?>
+                        </div>
+                        <div class="col-xs-6 form-group form-group-sm" style="margin-bottom: 0;">
+                            <label for="customer_cnic" class="control-label">CNIC</label>
+                            <?= form_input(['name' => 'customer_cnic', 'id' => 'customer_cnic', 'class' => 'form-control input-sm bigm-field', 'value' => $walkin_cnic ?? '', 'placeholder' => 'CNIC']) ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <?php } ?>
+
         <table class="sales_table_100" id="sale_totals">
             <tr>
                 <th style="width: 55%;"><?= lang(ucfirst($controller_name) . '.quantity_of_items', [$item_count]) ?></th>
@@ -404,23 +428,6 @@ helper('url');
                     <th style="width: 45%; font-size: 120%; text-align: right;"><span id="sale_amount_due"><?= to_currency($amount_due) ?></span></th>
                 </tr>
             </table>
-
-            <div id="bigm_sale_fields" class="container-fluid" style="margin-bottom: 10px;">
-                <div class="row">
-                    <div class="col-xs-4 form-group form-group-sm">
-                        <label for="walkin_name">Walk-in Name</label>
-                        <?= form_input(['name' => 'walkin_name', 'id' => 'walkin_name', 'class' => 'form-control input-sm bigm-field', 'value' => $walkin_name ?? '']) ?>
-                    </div>
-                    <div class="col-xs-4 form-group form-group-sm">
-                        <label for="customer_phone">Walk-in Phone</label>
-                        <?= form_input(['name' => 'customer_phone', 'id' => 'customer_phone', 'class' => 'form-control input-sm bigm-field', 'value' => $walkin_phone ?? '']) ?>
-                    </div>
-                    <div class="col-xs-4 form-group form-group-sm">
-                        <label for="customer_cnic">Walk-in CNIC</label>
-                        <?= form_input(['name' => 'customer_cnic', 'id' => 'customer_cnic', 'class' => 'form-control input-sm bigm-field', 'value' => $walkin_cnic ?? '']) ?>
-                    </div>
-                </div>
-            </div>
 
             <div id="payment_details">
                 <?php if ($payments_cover_total) { // Show Complete sale button instead of Add Payment if there is no amount due left ?>
@@ -737,12 +744,16 @@ helper('url');
             });
         });
 
+        function getBigmFieldsPayload() {
+            return {
+                walkin_name: $('#walkin_name').val() || '',
+                customer_phone: $('#customer_phone').val() || '',
+                customer_cnic: $('#customer_cnic').val() || ''
+            };
+        }
+
         function postBigmFields() {
-            $.post("<?= esc(site_url("$controller_name/setBigmFields")) ?>", {
-                walkin_name: $('#walkin_name').val(),
-                customer_phone: $('#customer_phone').val(),
-                customer_cnic: $('#customer_cnic').val()
-            });
+            $.post("<?= esc(site_url("$controller_name/setBigmFields")) ?>", getBigmFieldsPayload());
         }
 
         $('.bigm-field').on('change keyup', postBigmFields);
@@ -775,11 +786,7 @@ helper('url');
         });
 
         function completeSale() {
-            $.post("<?= esc(site_url("$controller_name/setBigmFields")) ?>", {
-                walkin_name: $('#walkin_name').val(),
-                customer_phone: $('#customer_phone').val(),
-                customer_cnic: $('#customer_cnic').val()
-            }).always(function() {
+            $.post("<?= esc(site_url("$controller_name/setBigmFields")) ?>", getBigmFieldsPayload()).always(function() {
                 $('#buttons_form').attr('action', "<?= "$controller_name/complete" ?>");
                 $('#buttons_form').submit();
             });
