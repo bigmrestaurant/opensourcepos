@@ -832,7 +832,7 @@ class Sales extends Secure_Controller
 
                 // Save the data to the sales table
                 $data['sale_id_num'] = $this->sale->save_value($sale_id, $data['sale_status'], $data['cart'], $customer_id, $employee_id, $data['comments'], $invoice_number, $work_order_number, $quote_number, $sale_type, $data['payments'], $data['dinner_table'], $tax_details);
-                $data['sale_id'] = 'BIGM ' . $data['sale_id_num'];
+                $data['sale_id'] = 'BIGM-' . $data['sale_id_num'];
 
                 // Resort and filter cart lines for printing
                 $data['cart'] = $this->sale_lib->sort_and_filter_cart($data['cart']);
@@ -918,7 +918,7 @@ class Sales extends Secure_Controller
 
             $data['sale_id_num'] = $this->sale->save_value($sale_id, $data['sale_status'], $data['cart'], $customer_id, $employee_id, $data['comments'], $invoice_number, $work_order_number, $quote_number, $sale_type, $data['payments'], $data['dinner_table'], $tax_details);
 
-            $data['sale_id'] = 'BIGM ' . $data['sale_id_num'];
+            $data['sale_id'] = 'BIGM-' . $data['sale_id_num'];
 
             $data['cart'] = $this->sale_lib->sort_and_filter_cart($data['cart']);
 
@@ -965,7 +965,7 @@ class Sales extends Secure_Controller
             $text = $this->config['invoice_email_message'];
             $tokens = [
                 new Token_invoice_sequence($number),
-                new Token_invoice_count('BIGM ' . $sale_data['sale_id']),
+                new Token_invoice_count('BIGM-' . $sale_data['sale_id']),
                 new Token_customer((array)$sale_data)
             ];
             $text = $this->token_lib->render($text, $tokens);
@@ -1149,7 +1149,7 @@ class Sales extends Secure_Controller
         $this->_load_customer_data($this->sale_lib->get_customer(), $data);
 
         $data['sale_id_num'] = $sale_id;
-        $data['sale_id'] = 'BIGM ' . $sale_id;
+        $data['sale_id'] = 'BIGM-' . $sale_id;
         $data['comments'] = $sale_info['comment'];
         $bigmFields = $this->sale->get_bigm_sale_fields($sale_id);
         if ($bigmFields !== null) {

@@ -421,8 +421,8 @@ class Sale extends Model
         $config = config(OSPOS::class)->settings;
 
         if (!empty($receiptSaleId)) {
-            // BIGM # (legacy POS # remains accepted for compatibility)
-            $pieces = explode(' ', trim($receiptSaleId));
+            // BIGM-# (accepts "BIGM-123", and legacy "BIGM 123" / "POS 123" for compatibility)
+            $pieces = preg_split('/[\s-]+/', trim($receiptSaleId));
 
             if (count($pieces) == 2 && in_array(strtoupper($pieces[0]), ['BIGM', 'POS'], true) && ctype_digit($pieces[1])) {
                 return $this->exists((int)$pieces[1]);
@@ -430,7 +430,7 @@ class Sale extends Model
                 $saleInfo = $this->get_sale_by_invoice_number($receiptSaleId);
 
                 if ($saleInfo->getNumRows() > 0) {
-                    $receiptSaleId = 'BIGM ' . $saleInfo->getRow()->sale_id;
+                    $receiptSaleId = 'BIGM-' . $saleInfo->getRow()->sale_id;
 
                     return true;
                 }

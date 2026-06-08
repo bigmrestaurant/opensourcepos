@@ -25,7 +25,7 @@
 
         <div class="form-group form-group-sm">
             <?= form_label(lang('Sales.receipt_number'), 'receipt_number', ['class' => 'control-label col-xs-3']) ?>
-            <?= anchor('sales/receipt/' . $sale_info['sale_id'], 'BIGM ' . $sale_info['sale_id'], ['target' => '_blank', 'class' => 'control-label col-xs-8', "style" => "text-align: left"]) ?>
+            <?= anchor('sales/receipt/' . $sale_info['sale_id'], 'BIGM-' . $sale_info['sale_id'], ['target' => '_blank', 'class' => 'control-label col-xs-8', "style" => "text-align: left"]) ?>
         </div>
 
         <div class="form-group form-group-sm">
