@@ -71,8 +71,11 @@ class Session extends BaseConfig
      *
      * WARNING: If you're using the database driver, don't forget to update
      *          your session table's PRIMARY KEY when changing this setting.
+     *
+     * BigM: false because Hostinger sits behind a proxy/CDN and mobile/ISP
+     * connections rotate the client IP, which was logging staff out mid-shift.
      */
-    public bool $matchIP = true;
+    public bool $matchIP = false;
 
     /**
      * --------------------------------------------------------------------------

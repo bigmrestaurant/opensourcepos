@@ -382,15 +382,13 @@ helper('url');
                         <label for="walkin_name" class="control-label">Name</label>
                         <?= form_input(['name' => 'walkin_name', 'id' => 'walkin_name', 'class' => 'form-control input-sm bigm-field', 'value' => $walkin_name ?? '', 'placeholder' => 'Walk-in name']) ?>
                     </div>
-                    <div class="row">
-                        <div class="col-xs-6 form-group form-group-sm" style="margin-bottom: 0;">
-                            <label for="customer_phone" class="control-label">Phone</label>
-                            <?= form_input(['name' => 'customer_phone', 'id' => 'customer_phone', 'class' => 'form-control input-sm bigm-field', 'value' => $walkin_phone ?? '', 'placeholder' => 'Phone #']) ?>
-                        </div>
-                        <div class="col-xs-6 form-group form-group-sm" style="margin-bottom: 0;">
-                            <label for="customer_cnic" class="control-label">CNIC</label>
-                            <?= form_input(['name' => 'customer_cnic', 'id' => 'customer_cnic', 'class' => 'form-control input-sm bigm-field', 'value' => $walkin_cnic ?? '', 'placeholder' => 'CNIC']) ?>
-                        </div>
+                    <div class="form-group form-group-sm" style="margin-bottom: 6px;">
+                        <label for="customer_phone" class="control-label">Phone</label>
+                        <?= form_input(['name' => 'customer_phone', 'id' => 'customer_phone', 'class' => 'form-control input-sm bigm-field', 'value' => $walkin_phone ?? '', 'placeholder' => 'Phone #']) ?>
+                    </div>
+                    <div class="form-group form-group-sm" style="margin-bottom: 0;">
+                        <label for="customer_cnic" class="control-label">CNIC</label>
+                        <?= form_input(['name' => 'customer_cnic', 'id' => 'customer_cnic', 'class' => 'form-control input-sm bigm-field', 'value' => $walkin_cnic ?? '', 'placeholder' => 'CNIC']) ?>
                     </div>
                 </div>
             </div>

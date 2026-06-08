@@ -105,18 +105,18 @@
         <?= nl2br(esc($config['return_policy'])) ?>
     </div>
 
-    <div id="barcode" style="display:table; width:100%; margin:0 auto;">
+    <div id="barcode" style="display:table; width:100%; table-layout:fixed; margin:10px auto 0;">
         <div style="display:table-cell; width:50%; text-align:center; vertical-align:top; padding:10px;">
-            <img src="<?= base_url('images/pra-pos.jpeg') ?>" alt="PRA Logo" style="max-width:120px; height:auto;">
-            <div id="qrcode-pra" style="margin:10px 0; width:120px; height:120px; display:inline-block;"
+            <img src="<?= base_url('images/pra-pos.jpeg') ?>" alt="PRA Logo" style="display:block; height:55px; width:auto; margin:0 auto 8px;">
+            <div id="qrcode-pra" style="width:120px; height:120px; margin:0 auto;"
                  data-qr-text="<?= esc('PRA Invoice# ' . ($pra_invoice_number ?? ''), 'attr') ?>"></div>
-            <div style="font-size:10pt; margin-top:5px;"><?= 'PRA Invoice# ' . esc($pra_invoice_number ?? '') ?></div>
+            <div style="font-size:10pt; margin-top:6px;"><?= 'PRA Invoice# ' . esc($pra_invoice_number ?? '') ?></div>
         </div>
         <div style="display:table-cell; width:50%; text-align:center; vertical-align:top; padding:10px;">
-            <img src="<?= base_url('images/fbr-pos.png') ?>" alt="FBR Logo" style="max-width:120px; height:auto;">
-            <div id="qrcode-fbr" style="margin:10px 0; width:120px; height:120px; display:inline-block;"
+            <img src="<?= base_url('images/fbr-pos.png') ?>" alt="FBR Logo" style="display:block; height:55px; width:auto; margin:0 auto 8px;">
+            <div id="qrcode-fbr" style="width:120px; height:120px; margin:0 auto;"
                  data-qr-text="<?= esc('FBR Invoice# ' . ($fbr_invoice_number ?? ''), 'attr') ?>"></div>
-            <div style="font-size:10pt; margin-top:5px;"><?= 'FBR Invoice# ' . esc($fbr_invoice_number ?? '') ?></div>
+            <div style="font-size:10pt; margin-top:6px;"><?= 'FBR Invoice# ' . esc($fbr_invoice_number ?? '') ?></div>
         </div>
     </div>
 

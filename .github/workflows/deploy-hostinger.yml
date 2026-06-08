@@ -83,6 +83,7 @@ jobs:
             -e "ssh -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=accept-new" \
             --exclude='/.env' \
             --exclude='/writable/' \
+            --exclude='/public/uploads/' \
             --exclude='.git/' \
             --exclude='.git*' \
             --exclude='/node_modules/' \

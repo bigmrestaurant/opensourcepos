@@ -86,7 +86,6 @@ auth.json
 # BigM: receipt assets that must ship with the app
 !/public/images/pra-pos.jpeg
 !/public/images/fbr-pos.png
-!/public/images/bigm_logo.png
 /writable/logs/*.log
 /writable/debugbar/*.json
 /app/Database/database.sql
