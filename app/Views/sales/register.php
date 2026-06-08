@@ -913,26 +913,28 @@ helper('url');
 <?php if (isset($bigm_card_total)) { ?>
     // BigM: cash is taxed at the standard GST rate, card at 5%. Swap the GST row,
     // total, amount due and amount tendered client-side so the cashier sees the
-    // correct figures before adding a payment. Disabled once a payment exists, as
-    // the server then locks the tax (cash always wins on mixed payments).
+    // correct figures immediately. Once a payment exists, the payment itself wins:
+    // cash keeps the standard rate, while card-only payments keep the 5% rate.
     function bigm_update_payment_tax() {
-        var realtime = <?= ($payments_total ?? 0) > 0 ? 'false' : 'true' ?>;
-        if (!realtime) {
-            return;
+        var card_label = "<?= esc($bigm_card_payment_label, 'js') ?>";
+        var payments_include_cash = <?= json_encode((bool) ($bigm_payments_include_cash ?? false)) ?>;
+        var payments_include_card = <?= json_encode((bool) ($bigm_payments_include_card ?? false)) ?>;
+        var is_card = payments_include_card && !payments_include_cash;
+
+        if (!payments_include_card && !payments_include_cash) {
+            is_card = ($("#payment_types").val() == card_label);
         }
 
-        var card_label = "<?= esc($bigm_card_payment_label, 'js') ?>";
-        var is_card    = ($("#payment_types").val() == card_label);
-
-        var total       = is_card ? "<?= to_currency($bigm_card_total) ?>"            : "<?= to_currency($bigm_cash_total) ?>";
-        var tax_amount  = is_card ? "<?= to_currency_tax($bigm_card_tax_amount) ?>"    : "<?= to_currency_tax($bigm_cash_tax_amount) ?>";
-        var tax_label   = is_card ? "<?= esc($bigm_card_tax_label, 'js') ?>"           : "<?= esc($bigm_cash_tax_label, 'js') ?>";
-        var tendered    = is_card ? "<?= to_currency_no_money($bigm_card_total) ?>"    : "<?= to_currency_no_money($bigm_cash_total) ?>";
+        var total      = is_card ? "<?= to_currency($bigm_card_total) ?>"             : "<?= to_currency($bigm_cash_total) ?>";
+        var amount_due = is_card ? "<?= to_currency($bigm_card_amount_due) ?>"        : "<?= to_currency($bigm_cash_amount_due) ?>";
+        var tax_amount = is_card ? "<?= to_currency_tax($bigm_card_tax_amount) ?>"    : "<?= to_currency_tax($bigm_cash_tax_amount) ?>";
+        var tax_label  = is_card ? "<?= esc($bigm_card_tax_label, 'js') ?>"           : "<?= esc($bigm_cash_tax_label, 'js') ?>";
+        var tendered   = is_card ? "<?= to_currency_no_money($bigm_card_amount_due) ?>" : "<?= to_currency_no_money($bigm_cash_amount_due) ?>";
 
         $(".bigm-tax-label").first().html(tax_label);
         $(".bigm-tax-amount").first().html(tax_amount);
         $("#sale_total").html(total);
-        $("#sale_amount_due").html(total);
+        $("#sale_amount_due").html(amount_due);
         $("#amount_tendered:enabled").val(tendered);
     }
 <?php } ?>

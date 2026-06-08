@@ -1861,6 +1861,13 @@ class Sales extends Secure_Controller
             $data['total'] = $this->sale_lib->get_card_total();
             $data['amount_due'] = bcsub($data['total'], (string) ($data['payments_total'] ?? 0), totals_decimals());
             $data['amount_change'] = bcmul($data['amount_due'], '-1', totals_decimals());
+
+            $threshold = bcpow('10', (string) -totals_decimals()) / 2;
+            if ($this->sale_lib->get_mode() == 'return') {
+                $data['payments_cover_total'] = $data['amount_due'] > -$threshold;
+            } else {
+                $data['payments_cover_total'] = $data['amount_due'] < $threshold;
+            }
         }
 
         return $taxDetails;
@@ -1889,6 +1896,7 @@ class Sales extends Secure_Controller
         $data['bigm_cash_total']      = $data['total'] ?? '0';
         $data['bigm_cash_tax_amount'] = $cashTaxAmount;
         $data['bigm_cash_tax_label']  = $cashTaxLabel;
+        $data['bigm_cash_amount_due'] = bcsub((string) $data['bigm_cash_total'], (string) ($data['payments_total'] ?? 0), totals_decimals());
 
         $cardTaxAmount = '0';
         $cardTaxLabel  = '';
@@ -1902,7 +1910,10 @@ class Sales extends Secure_Controller
         $data['bigm_card_total']         = $this->sale_lib->get_card_total();
         $data['bigm_card_tax_amount']    = $cardTaxAmount;
         $data['bigm_card_tax_label']     = $cardTaxLabel;
+        $data['bigm_card_amount_due']    = bcsub((string) $data['bigm_card_total'], (string) ($data['payments_total'] ?? 0), totals_decimals());
         $data['bigm_card_payment_label'] = lang('Sales.credit');
+        $data['bigm_payments_include_cash'] = $this->sale_lib->payments_include_cash($data['payments'] ?? []);
+        $data['bigm_payments_include_card'] = $this->sale_lib->payments_include_card($data['payments'] ?? []);
     }
 
     /**
