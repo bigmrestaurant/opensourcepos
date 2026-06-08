@@ -11,7 +11,6 @@
  * @var float $total
  * @var array $payments
  * @var float $amount_change
- * @var string $barcode
  * @var array $config
  * @var string $walkin_name
  * @var string $walkin_phone
@@ -24,8 +23,8 @@
 <div id="receipt_wrapper" style="font-size: <?= $config['receipt_font_size'] ?>px;">
     <div id="receipt_header">
         <?php if ($config['company_logo'] != '') { ?>
-            <div id="company_name">
-                <img id="image" src="<?= base_url('uploads/' . esc($config['company_logo'], 'url')) ?>" alt="company_logo">
+            <div id="company_name" style="text-align:center;">
+                <img id="image" src="<?= base_url('uploads/' . esc($config['company_logo'], 'url')) ?>" alt="company_logo" style="max-width:140px; max-height:70px; width:auto; height:auto;">
             </div>
         <?php } ?>
 
@@ -118,13 +117,6 @@
                  data-qr-text="<?= esc('FBR Invoice# ' . ($fbr_invoice_number ?? ''), 'attr') ?>"></div>
             <div style="font-size:10pt; margin-top:6px;"><?= 'FBR Invoice# ' . esc($fbr_invoice_number ?? '') ?></div>
         </div>
-    </div>
-
-    <div style="text-align:center; font-size:7.5pt; margin-top:10px;">Powered by DOStechnologies.com</div>
-
-    <div id="barcode_footer">
-        <?= $barcode ?><br>
-        <?= esc($sale_id) ?>
     </div>
 </div>
 

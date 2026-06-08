@@ -1838,7 +1838,18 @@ class Sales extends Secure_Controller
      */
     private function apply_bigm_tax_and_totals(array &$data, array $taxDetails): array
     {
-        if ($this->sale_lib->payments_include_card($data['payments']) || $this->sale_lib->is_card_payment($data['selected_payment_type'] ?? null)) {
+        $selectedPaymentType = $data['selected_payment_type'] ?? null;
+        $paymentsIncludeCash = $this->sale_lib->payments_include_cash($data['payments']);
+        $paymentsIncludeCard = $this->sale_lib->payments_include_card($data['payments']);
+
+        // Legacy BigM rule: cash always wins. The card rate (5% GST) applies only
+        // when the sale is settled entirely by card. If any cash payment is present
+        // the standard (cash) tax rate is used. Before any payment is entered we fall
+        // back to the selected payment type so the on-screen total previews correctly.
+        $cardOnly = ($paymentsIncludeCard && !$paymentsIncludeCash)
+            || (!$paymentsIncludeCard && !$paymentsIncludeCash && $this->sale_lib->is_card_payment($selectedPaymentType));
+
+        if ($cardOnly) {
             $taxDetails = $this->sale_lib->apply_card_tax_details($taxDetails, $data['cart']);
             $data['taxes'] = $taxDetails[0];
             $data['total'] = $this->sale_lib->get_card_total();

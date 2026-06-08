@@ -953,26 +953,19 @@ class Sale extends Model
     }
 
     /**
-     * Gets sale payment options
+     * Gets sale payment options.
+     *
+     * BigM: the restaurant only accepts two tender types - Cash and Card.
+     * Card (credit) is taxed at 5% GST, cash at the standard rate. All other
+     * OSPOS payment types (gift card, rewards, due, cheque, deposits, etc.) are
+     * intentionally omitted to mirror the legacy POS.
      */
     public function get_payment_options(bool $giftcard = true, bool $reward_points = true): array
     {
-        $payments = get_payment_options();
-
-        if ($giftcard) {
-            $payments[lang('Sales.giftcard')] = lang('Sales.giftcard');
-        }
-
-        if ($reward_points) {
-            $payments[lang('Sales.rewards')] = lang('Sales.rewards');
-        }
-        $sale_lib = new Sale_lib();
-        if ($sale_lib->get_mode() == 'sale_work_order') {
-            $payments[lang('Sales.cash_deposit')] = lang('Sales.cash_deposit');
-            $payments[lang('Sales.credit_deposit')] = lang('Sales.credit_deposit');
-        }
-
-        return $payments;
+        return [
+            lang('Sales.cash')   => lang('Sales.cash'),
+            lang('Sales.credit') => lang('Sales.credit'),
+        ];
     }
 
     /**

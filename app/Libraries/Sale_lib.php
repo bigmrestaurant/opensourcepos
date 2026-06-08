@@ -1792,6 +1792,20 @@ class Sale_lib
         return false;
     }
 
+    public function payments_include_cash(array $payments): bool
+    {
+        $cashLabel = lang('Sales.cash');
+
+        foreach ($payments as $payment) {
+            $type = is_array($payment) ? ($payment['payment_type'] ?? '') : '';
+            if ($type === $cashLabel || str_starts_with($type, $cashLabel . ':')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /**
      * @return array<string, array<string, mixed>>
      */
