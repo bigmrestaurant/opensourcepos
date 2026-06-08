@@ -1842,6 +1842,12 @@ class Sales extends Secure_Controller
         $paymentsIncludeCash = $this->sale_lib->payments_include_cash($data['payments']);
         $paymentsIncludeCard = $this->sale_lib->payments_include_card($data['payments']);
 
+        // Capture the cash (standard) breakdown before any card override below, then
+        // the card breakdown, so the register view can switch between them in JS when
+        // the cashier changes the payment type. $data['taxes']/$data['total'] still
+        // hold the standard cash figures at this point.
+        $this->populate_bigm_payment_previews($data);
+
         // Legacy BigM rule: cash always wins. The card rate (5% GST) applies only
         // when the sale is settled entirely by card. If any cash payment is present
         // the standard (cash) tax rate is used. Before any payment is entered we fall
@@ -1858,6 +1864,45 @@ class Sales extends Secure_Controller
         }
 
         return $taxDetails;
+    }
+
+    /**
+     * Build the cash and card total/GST previews so the register view can update the
+     * displayed amounts in real time when the cashier switches the payment type.
+     *
+     * Must be called while $data['taxes'] and $data['total'] still hold the standard
+     * (cash) figures, i.e. before any card override is applied.
+     *
+     * @param array<string, mixed> $data
+     */
+    private function populate_bigm_payment_previews(array &$data): void
+    {
+        $cashTaxAmount = '0';
+        $cashTaxLabel  = '';
+        foreach (($data['taxes'] ?? []) as $tax) {
+            $cashTaxAmount = bcadd($cashTaxAmount, (string) $tax['sale_tax_amount'], totals_decimals());
+            if ($cashTaxLabel === '') {
+                $cashTaxLabel = (float) $tax['tax_rate'] . '% ' . $tax['tax_group'];
+            }
+        }
+
+        $data['bigm_cash_total']      = $data['total'] ?? '0';
+        $data['bigm_cash_tax_amount'] = $cashTaxAmount;
+        $data['bigm_cash_tax_label']  = $cashTaxLabel;
+
+        $cardTaxAmount = '0';
+        $cardTaxLabel  = '';
+        foreach ($this->sale_lib->get_card_taxes_summary() as $tax) {
+            $cardTaxAmount = bcadd($cardTaxAmount, (string) $tax['sale_tax_amount'], totals_decimals());
+            if ($cardTaxLabel === '') {
+                $cardTaxLabel = (float) $tax['tax_rate'] . '% ' . $tax['tax_group'];
+            }
+        }
+
+        $data['bigm_card_total']         = $this->sale_lib->get_card_total();
+        $data['bigm_card_tax_amount']    = $cardTaxAmount;
+        $data['bigm_card_tax_label']     = $cardTaxLabel;
+        $data['bigm_card_payment_label'] = lang('Sales.credit');
     }
 
     /**

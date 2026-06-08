@@ -404,9 +404,9 @@ helper('url');
                 <th style="width: 45%; text-align: right;"><?= to_currency($subtotal) ?></th>
             </tr>
             <?php foreach ($taxes as $tax_group_index => $tax) { ?>
-                <tr>
-                    <th style="width: 55%;"><?= (float)$tax['tax_rate'] . '% ' . $tax['tax_group'] ?></th>
-                    <th style="width: 45%; text-align: right;"><?= to_currency_tax($tax['sale_tax_amount']) ?></th>
+                <tr class="bigm-tax-row">
+                    <th style="width: 55%;" class="bigm-tax-label"><?= (float)$tax['tax_rate'] . '% ' . $tax['tax_group'] ?></th>
+                    <th style="width: 45%; text-align: right;" class="bigm-tax-amount"><?= to_currency_tax($tax['sale_tax_amount']) ?></th>
                 </tr>
             <?php } ?>
             <tr>
@@ -819,6 +819,14 @@ helper('url');
 
         $('#payment_types').change(check_payment_type).ready(check_payment_type);
 
+<?php if (isset($bigm_card_total)) { ?>
+        // BigM: refresh the GST line + total the instant the payment type changes,
+        // mirroring the old POS "cash 16% / card 5%" preview. Bound after
+        // check_payment_type so it has the final word on the displayed amounts.
+        $('#payment_types').change(bigm_update_payment_tax);
+        bigm_update_payment_tax();
+<?php } ?>
+
         $('#cart_contents input').keypress(function(event) {
             if (event.which == 13) {
                 $(this).parents('tr').prevAll('form:first').submit();
@@ -901,6 +909,33 @@ helper('url');
             $(".non-giftcard-input").attr('disabled', false);
         }
     }
+
+<?php if (isset($bigm_card_total)) { ?>
+    // BigM: cash is taxed at the standard GST rate, card at 5%. Swap the GST row,
+    // total, amount due and amount tendered client-side so the cashier sees the
+    // correct figures before adding a payment. Disabled once a payment exists, as
+    // the server then locks the tax (cash always wins on mixed payments).
+    function bigm_update_payment_tax() {
+        var realtime = <?= ($payments_total ?? 0) > 0 ? 'false' : 'true' ?>;
+        if (!realtime) {
+            return;
+        }
+
+        var card_label = "<?= esc($bigm_card_payment_label, 'js') ?>";
+        var is_card    = ($("#payment_types").val() == card_label);
+
+        var total       = is_card ? "<?= to_currency($bigm_card_total) ?>"            : "<?= to_currency($bigm_cash_total) ?>";
+        var tax_amount  = is_card ? "<?= to_currency_tax($bigm_card_tax_amount) ?>"    : "<?= to_currency_tax($bigm_cash_tax_amount) ?>";
+        var tax_label   = is_card ? "<?= esc($bigm_card_tax_label, 'js') ?>"           : "<?= esc($bigm_cash_tax_label, 'js') ?>";
+        var tendered    = is_card ? "<?= to_currency_no_money($bigm_card_total) ?>"    : "<?= to_currency_no_money($bigm_cash_total) ?>";
+
+        $(".bigm-tax-label").first().html(tax_label);
+        $(".bigm-tax-amount").first().html(tax_amount);
+        $("#sale_total").html(total);
+        $("#sale_amount_due").html(total);
+        $("#amount_tendered:enabled").val(tendered);
+    }
+<?php } ?>
 
     // Add Keyboard Shortcuts/Hotkeys to Sale Register
     document.body.onkeyup = function(event) {
