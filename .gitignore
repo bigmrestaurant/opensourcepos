@@ -87,3 +87,6 @@ auth.json
 /app/Database/database.sql
 /writable/cache/settings
 /.env.bak
+
+# Hostinger deploy keys (local only)
+/deploy/keys/
