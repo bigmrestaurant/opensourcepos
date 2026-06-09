@@ -39,20 +39,26 @@
     </div>
 
     <div id="receipt_general_info">
-        <div id="customerName"><?= 'Customer: ' . esc($walkin_name !== '' ? $walkin_name : '--------') ?></div>
-        <div id="customerPhone"><?= 'Customer Phone# ' . esc($walkin_phone !== '' ? $walkin_phone : '--------') ?></div>
-        <div id="customerCnic"><?= 'Customer CNIC: ' . esc($walkin_cnic !== '' ? $walkin_cnic : '--------') ?></div>
+        <?php if (($walkin_name ?? '') !== '') { ?>
+            <div id="customerName"><?= 'Customer: ' . esc($walkin_name) ?></div>
+        <?php } ?>
+        <?php if (($walkin_phone ?? '') !== '') { ?>
+            <div id="customerPhone"><?= 'Customer Phone# ' . esc($walkin_phone) ?></div>
+        <?php } ?>
+        <?php if (($walkin_cnic ?? '') !== '') { ?>
+            <div id="customerCnic"><?= 'Customer CNIC: ' . esc($walkin_cnic) ?></div>
+        <?php } ?>
         <div id="sale_id"><?= lang('Sales.id') . esc(": $sale_id") ?></div>
         <div id="employee"><?= lang('Employees.employee') . esc(": $employee") ?></div>
     </div>
 
-    <table id="receipt_items">
+    <table id="receipt_items" style="table-layout:fixed; width:100%; word-break:break-word;">
         <tr>
-            <th style="width:20%; text-align:left;"><?= lang('Sales.item_number') ?></th>
-            <th style="width:36%; text-align:left;"><?= lang('Items.item') ?></th>
-            <th style="width:18%; text-align:right;"><?= lang('Sales.price') ?></th>
-            <th style="width:8%; text-align:center;"><?= lang('Sales.quantity') ?></th>
-            <th style="width:18%; text-align:right;"><?= lang('Sales.total') ?></th>
+            <th style="width:22%; text-align:left;"><?= lang('Sales.item_number') ?></th>
+            <th style="width:30%; text-align:left;"><?= lang('Items.item') ?></th>
+            <th style="width:18%; text-align:right; white-space:nowrap;"><?= lang('Sales.price') ?></th>
+            <th style="width:12%; text-align:center;"><?= lang('Sales.quantity') ?></th>
+            <th style="width:18%; text-align:right; white-space:nowrap;"><?= lang('Sales.total') ?></th>
         </tr>
         <?php
         foreach ($cart as $item) {
@@ -63,11 +69,11 @@
                 }
         ?>
                 <tr>
-                    <td><?= esc($item['item_number'] ?? '') ?></td>
-                    <td><?= esc($item['name']) ?></td>
-                    <td style="text-align:right;"><?= to_currency($item['price']) ?></td>
+                    <td style="word-break:break-word;"><?= esc($item['item_number'] ?? '') ?></td>
+                    <td style="word-break:break-word;"><?= esc($item['name']) ?></td>
+                    <td style="text-align:right; white-space:nowrap;"><?= to_currency($item['price']) ?></td>
                     <td style="text-align:center;"><?= to_quantity_decimals($item['quantity']) ?></td>
-                    <td style="text-align:right;"><?= to_currency($lineTotal) ?></td>
+                    <td style="text-align:right; white-space:nowrap;"><?= to_currency($lineTotal) ?></td>
                 </tr>
         <?php
             }
@@ -104,18 +110,18 @@
         <?= nl2br(esc($config['return_policy'])) ?>
     </div>
 
-    <div id="barcode" style="display:table; width:100%; table-layout:fixed; margin:10px auto 0;">
-        <div style="display:table-cell; width:50%; text-align:center; vertical-align:top; padding:10px;">
-            <img src="<?= base_url('images/pra-pos.jpeg') ?>" alt="PRA Logo" style="display:block; height:55px; width:auto; margin:0 auto 8px;">
-            <div id="qrcode-pra" style="width:120px; height:120px; margin:0 auto;"
+    <div id="barcode" style="display:table; width:100%; table-layout:fixed; margin:10px auto 0; page-break-inside:avoid;">
+        <div style="display:table-cell; width:50%; text-align:center; vertical-align:top; padding:6px; page-break-inside:avoid;">
+            <img src="<?= base_url('images/pra-pos.jpeg') ?>" alt="PRA Logo" style="display:block; height:45px; width:auto; max-width:100%; margin:0 auto 6px;">
+            <div id="qrcode-pra" style="width:100px; height:100px; max-width:100%; margin:0 auto;"
                  data-qr-text="<?= esc('PRA Invoice# ' . ($pra_invoice_number ?? ''), 'attr') ?>"></div>
-            <div style="font-size:10pt; margin-top:6px;"><?= 'PRA Invoice# ' . esc($pra_invoice_number ?? '') ?></div>
+            <div style="font-size:9pt; margin-top:6px; word-break:break-word;"><?= 'PRA Invoice# ' . esc($pra_invoice_number ?? '') ?></div>
         </div>
-        <div style="display:table-cell; width:50%; text-align:center; vertical-align:top; padding:10px;">
-            <img src="<?= base_url('images/fbr-pos.png') ?>" alt="FBR Logo" style="display:block; height:55px; width:auto; margin:0 auto 8px;">
-            <div id="qrcode-fbr" style="width:120px; height:120px; margin:0 auto;"
+        <div style="display:table-cell; width:50%; text-align:center; vertical-align:top; padding:6px; page-break-inside:avoid;">
+            <img src="<?= base_url('images/fbr-pos.png') ?>" alt="FBR Logo" style="display:block; height:45px; width:auto; max-width:100%; margin:0 auto 6px;">
+            <div id="qrcode-fbr" style="width:100px; height:100px; max-width:100%; margin:0 auto;"
                  data-qr-text="<?= esc('FBR Invoice# ' . ($fbr_invoice_number ?? ''), 'attr') ?>"></div>
-            <div style="font-size:10pt; margin-top:6px;"><?= 'FBR Invoice# ' . esc($fbr_invoice_number ?? '') ?></div>
+            <div style="font-size:9pt; margin-top:6px; word-break:break-word;"><?= 'FBR Invoice# ' . esc($fbr_invoice_number ?? '') ?></div>
         </div>
     </div>
 </div>
@@ -126,8 +132,8 @@
         var praEl = document.getElementById('qrcode-pra');
         var fbrEl = document.getElementById('qrcode-fbr');
         if (typeof QRCode !== 'undefined' && praEl && fbrEl) {
-            new QRCode(praEl, { text: praEl.getAttribute('data-qr-text'), width: 120, height: 120 });
-            new QRCode(fbrEl, { text: fbrEl.getAttribute('data-qr-text'), width: 120, height: 120 });
+            new QRCode(praEl, { text: praEl.getAttribute('data-qr-text'), width: 100, height: 100 });
+            new QRCode(fbrEl, { text: fbrEl.getAttribute('data-qr-text'), width: 100, height: 100 });
         }
     });
 </script>
