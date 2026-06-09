@@ -20,6 +20,36 @@
  */
 ?>
 
+<style type="text/css">
+    /* BigM thermal print layout (FIT FP-1100 Raster). Give the body breathing room
+       on the left/right and force a real gap between the item columns so Price and
+       Quantity never collide on narrow paper. */
+    #receipt_wrapper {
+        box-sizing: border-box;
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+    #receipt_wrapper #receipt_items th,
+    #receipt_wrapper #receipt_items td {
+        padding: 2px 6px;
+    }
+    /* Extra separation right where Price meets Quantity. */
+    #receipt_wrapper #receipt_items th:nth-child(3),
+    #receipt_wrapper #receipt_items td:nth-child(3) {
+        padding-right: 10px;
+    }
+    #receipt_wrapper #receipt_items th:nth-child(4),
+    #receipt_wrapper #receipt_items td:nth-child(4) {
+        padding-left: 10px;
+    }
+    @media print {
+        #receipt_wrapper {
+            padding-left: 8px;
+            padding-right: 8px;
+        }
+    }
+</style>
+
 <div id="receipt_wrapper" style="font-size: <?= $config['receipt_font_size'] ?>px;">
     <div id="receipt_header">
         <?php if ($config['company_logo'] != '') { ?>
