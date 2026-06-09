@@ -17,6 +17,7 @@
                     <?= form_dropdown(
                         'receipt_template',
                         [
+                            'receipt_bigm'    => lang('Config.receipt_bigm'),
                             'receipt_default' => lang('Config.receipt_default'),
                             'receipt_short'   => lang('Config.receipt_short')
                         ],
