@@ -116,6 +116,19 @@
 
         <tr></tr>
 
+        <?php if ((float) ($service_charge ?? 0) != 0) { ?>
+            <tr>
+                <td colspan="3" style="text-align: right;"><?= lang('Sales.service_charge') ?>:</td>
+                <td style="text-align: right;"><?= to_currency($service_charge) ?></td>
+            </tr>
+        <?php } ?>
+        <?php if ((float) ($bill_discount ?? 0) != 0) { ?>
+            <tr>
+                <td colspan="3" style="text-align: right;"><?= lang('Sales.bill_discount') ?>:</td>
+                <td style="text-align: right;"><?= to_currency($bill_discount * -1) ?></td>
+            </tr>
+        <?php } ?>
+
         <?php $border = (!$config['receipt_show_taxes'] && !($config['receipt_show_total_discount'] && $discount > 0)) ?>
         <tr>
             <td colspan="3" style="text-align: right;<?= $border ? ' border-top: 2px solid black;' : '' ?>"><?= lang('Sales.total') ?></td>

@@ -34,6 +34,8 @@ class Sale extends Model
         'walkin_cnic',
         'pra_invoice_number',
         'fbr_invoice_number',
+        'bill_discount',
+        'service_charge',
     ];
 
     public function __construct()
@@ -57,9 +59,12 @@ class Sale extends Model
             . " THEN sales_items.quantity_purchased * sales_items.item_unit_price - ROUND(sales_items.quantity_purchased * sales_items.item_unit_price * sales_items.discount / 100, $decimals) "
             . 'ELSE sales_items.quantity_purchased * (sales_items.item_unit_price - sales_items.discount) END';
 
+        // BigM: bill-level service charge and discount are stored once per sale.
+        $bill_adjustment = 'IFNULL(MAX(sales.service_charge), 0) - IFNULL(MAX(sales.bill_discount), 0)';
+
         $sale_total = $config['tax_included']
-            ? "ROUND(SUM($sale_price), $decimals) + $cash_adjustment"
-            : "ROUND(SUM($sale_price), $decimals) + $sales_tax + $cash_adjustment";
+            ? "ROUND(SUM($sale_price), $decimals) + $cash_adjustment + $bill_adjustment"
+            : "ROUND(SUM($sale_price), $decimals) + $sales_tax + $cash_adjustment + $bill_adjustment";
 
         $sql = 'sales.sale_id AS sale_id,
                 MAX(DATE(sales.sale_time)) AS sale_date,
@@ -148,8 +153,11 @@ class Sale extends Model
         $internal_tax = 'IFNULL(SUM(`sales_items_taxes`.`internal_tax`), 0)';
         $cash_adjustment = 'IFNULL(SUM(`payments`.`sale_cash_adjustment`), 0)';
 
+        // BigM: bill-level service charge and discount are stored once per sale.
+        $bill_adjustment = "IFNULL(MAX(`{$db_prefix}sales`.`service_charge`), 0) - IFNULL(MAX(`{$db_prefix}sales`.`bill_discount`), 0)";
+
         $sale_subtotal = "ROUND(SUM($sale_price), $decimals) - $internal_tax";
-        $sale_total = "ROUND(SUM($sale_price), $decimals) + $sales_tax + $cash_adjustment";
+        $sale_total = "ROUND(SUM($sale_price), $decimals) + $sales_tax + $cash_adjustment + $bill_adjustment";
 
         $this->create_temp_table_sales_items_taxes_data($where);
 
@@ -568,6 +576,8 @@ class Sale extends Model
             'walkin_name'       => $sale_lib->get_walkin_name() ?: null,
             'walkin_phone'      => $sale_lib->get_walkin_phone() ?: null,
             'walkin_cnic'       => $sale_lib->get_walkin_cnic() ?: null,
+            'bill_discount'     => $sale_lib->get_bill_discount(),
+            'service_charge'    => $sale_lib->get_service_charge(),
         ];
 
         // Run these queries as a transaction, we want to make sure we do all or nothing
@@ -715,7 +725,7 @@ class Sale extends Model
     {
         $builder = $this->db->table('sales');
         $builder->select(
-            'walkin_name, walkin_phone, walkin_cnic, pra_invoice_number, fbr_invoice_number'
+            'walkin_name, walkin_phone, walkin_cnic, pra_invoice_number, fbr_invoice_number, bill_discount, service_charge'
         );
         $builder->where('sale_id', $sale_id);
 
@@ -1086,12 +1096,21 @@ class Sale extends Model
         $internal_tax = 'IFNULL(SUM(sales_items_taxes.internal_tax), 0)';
         $cash_adjustment = 'IFNULL(SUM(payments.sale_cash_adjustment), 0)';
 
+        // BigM: bill-level service charge and discount are stored once per sale.
+        // Attach sale-level amounts to the first line only so SUM() across lines
+        // counts each adjustment once (summary and detailed reports).
+        $min_line = '(SELECT MIN(bigm_si.line) FROM ' . $this->db->prefixTable('sales_items') . ' AS bigm_si WHERE bigm_si.sale_id = sales_items.sale_id)';
+        $line_cash_adjustment = "CASE WHEN sales_items.line = $min_line THEN $cash_adjustment ELSE 0 END";
+        $bill_adjustment = "CASE WHEN sales_items.line = $min_line THEN (IFNULL(MAX(sales.service_charge), 0) - IFNULL(MAX(sales.bill_discount), 0)) ELSE 0 END";
+
+        $line_subtotal = "ROUND(SUM($sale_price), $decimals) - $internal_tax";
+
         if ($config['tax_included']) {
-            $sale_total = "ROUND(SUM($sale_price), $decimals) + $cash_adjustment";
-            $sale_subtotal = "$sale_total - $internal_tax";
+            $sale_subtotal = $line_subtotal;
+            $sale_total = "ROUND(SUM($sale_price), $decimals) + $line_cash_adjustment + $bill_adjustment";
         } else {
-            $sale_subtotal = "ROUND(SUM($sale_price), $decimals) - $internal_tax + $cash_adjustment";
-            $sale_total = "ROUND(SUM($sale_price), $decimals) + $sales_tax + $cash_adjustment";
+            $sale_subtotal = $line_subtotal;
+            $sale_total = "$line_subtotal + $sales_tax + $line_cash_adjustment + $bill_adjustment";
         }
 
         // Create a temporary table to contain all the sum of taxes per sale item
@@ -1175,7 +1194,7 @@ class Sale extends Model
                     $tax AS tax,
                     $sale_total AS total,
                     $sale_cost AS cost,
-                    ($sale_subtotal - $sale_cost) AS profit
+                    ($sale_subtotal - $sale_cost + $bill_adjustment) AS profit
                     " . '
                 FROM ' . $this->db->prefixTable('sales_items') . ' AS sales_items
                 INNER JOIN ' . $this->db->prefixTable('sales') . ' AS sales

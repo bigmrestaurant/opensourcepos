@@ -20,6 +20,8 @@
  * @var float $subtotal
  * @var array $taxes
  * @var float $total
+ * @var float $service_charge
+ * @var float $bill_discount
  * @var float $payments_total
  * @var float $amount_due
  * @var bool $payments_cover_total
@@ -148,8 +150,7 @@ helper('url');
                 <th style="width: 30%;"><?= lang(ucfirst($controller_name) . '.item_name') ?></th>
                 <th style="width: 10%;"><?= lang(ucfirst($controller_name) . '.price') ?></th>
                 <th style="width: 10%;"><?= lang(ucfirst($controller_name) . '.quantity') ?></th>
-                <th style="width: 15%;"><?= lang(ucfirst($controller_name) . '.discount') ?></th>
-                <th style="width: 10%;"><?= lang(ucfirst($controller_name) . '.total') ?></th>
+                <th style="width: 20%;"><?= lang(ucfirst($controller_name) . '.total') ?></th>
                 <th style="width: 5%;"><?= lang(ucfirst($controller_name) . '.update') ?></th>
             </tr>
         </thead>
@@ -157,7 +158,7 @@ helper('url');
         <tbody id="cart_contents">
             <?php if (count($cart) == 0) { ?>
                 <tr>
-                    <td colspan="8">
+                    <td colspan="7">
                         <div class="alert alert-dismissible alert-info"><?= lang(ucfirst($controller_name) . '.no_items_in_cart') ?></div>
                     </td>
                 </tr>
@@ -212,15 +213,6 @@ helper('url');
                             </td>
 
                             <td>
-                                <div class="input-group">
-                                    <?= form_input(['name' => 'discount', 'class' => 'form-control input-sm', 'value' => $item['discount_type'] ? to_currency_no_money($item['discount']) : to_decimals($item['discount']), 'tabindex' => ++$tabindex, 'onClick' => 'this.select();']) ?>
-                                    <span class="input-group-btn">
-                                        <?= form_checkbox(['id' => 'discount_toggle', 'name' => 'discount_toggle', 'value' => 1, 'data-toggle' => "toggle", 'data-size' => 'small', 'data-onstyle' => 'success', 'data-on' => '<b>' . $config['currency_symbol'] . '</b>', 'data-off' => '<b>%</b>', 'data-line' => $line, 'checked' => $item['discount_type'] == 1]) ?>
-                                    </span>
-                                </div>
-                            </td>
-
-                            <td>
                                 <?php
                                 if ($item['item_type'] == ITEM_AMOUNT_ENTRY) {    // TODO: === ?
                                     echo form_input(['name' => 'discounted_total', 'class' => 'form-control input-sm', 'value' => to_currency_no_money($item['discounted_total']), 'tabindex' => ++$tabindex, 'onClick' => 'this.select();']);
@@ -239,7 +231,7 @@ helper('url');
                         <tr>
                             <?php if ($item['item_type'] == ITEM_TEMP) { ?>
                                 <td><?= form_input(['type' => 'hidden', 'name' => 'item_id', 'value' => $item['item_id']]) ?></td>
-                                <td style="text-align: center;" colspan="6">
+                                <td style="text-align: center;" colspan="5">
                                     <?= form_input(['name' => 'item_description', 'id' => 'item_description', 'class' => 'form-control input-sm', 'value' => $item['description'], 'tabindex' => ++$tabindex]) ?>
                                 </td>
                                 <td> </td>
@@ -272,7 +264,7 @@ helper('url');
                                     }
                                     ?>
                                 </td>
-                                <td colspan="4" style="text-align: left;">
+                                <td colspan="3" style="text-align: left;">
                                     <?php
                                     if ($item['is_serialized']) {
                                         echo form_input(['name' => 'serialnumber', 'class' => 'form-control input-sm', 'value' => $item['serialnumber'], 'onClick' => 'this.select();']);
@@ -321,10 +313,6 @@ helper('url');
                             <th style="width: 45%; text-align: right;"><?= esc($customer_location) ?></th>
                         </tr>
                     <?php } ?>
-                    <tr>
-                        <th style="width: 55%;"><?= lang(ucfirst($controller_name) . '.customer_discount') ?></th>
-                        <th style="width: 45%; text-align: right;"><?= ($customer_discount_type == FIXED) ? to_currency($customer_discount) : $customer_discount . '%' ?></th>
-                    </tr>
                     <?php if ($config['customer_reward_enable']): ?>
                         <?php if (!empty($customer_rewards)) { ?>
                             <tr>
@@ -394,6 +382,8 @@ helper('url');
             </div>
         <?php } ?>
 
+        <?= form_open("$controller_name/setBillAdjustments", ['id' => 'bill_adjustments_form']) ?><?= form_close() ?>
+
         <table class="sales_table_100" id="sale_totals">
             <tr>
                 <th style="width: 55%;"><?= lang(ucfirst($controller_name) . '.quantity_of_items', [$item_count]) ?></th>
@@ -409,6 +399,18 @@ helper('url');
                     <th style="width: 45%; text-align: right;" class="bigm-tax-amount"><?= to_currency_tax($tax['sale_tax_amount']) ?></th>
                 </tr>
             <?php } ?>
+            <tr>
+                <th style="width: 55%;"><?= lang(ucfirst($controller_name) . '.service_charge') ?></th>
+                <th style="width: 45%; text-align: right;">
+                    <?= form_input(['name' => 'service_charge', 'id' => 'service_charge', 'form' => 'bill_adjustments_form', 'class' => 'form-control input-sm bigm-bill-adjustment', 'value' => to_currency_no_money($service_charge ?? 0), 'style' => 'text-align: right;', 'onClick' => 'this.select();']) ?>
+                </th>
+            </tr>
+            <tr>
+                <th style="width: 55%;"><?= lang(ucfirst($controller_name) . '.bill_discount') ?></th>
+                <th style="width: 45%; text-align: right;">
+                    <?= form_input(['name' => 'bill_discount', 'id' => 'bill_discount', 'form' => 'bill_adjustments_form', 'class' => 'form-control input-sm bigm-bill-adjustment', 'value' => to_currency_no_money($bill_discount ?? 0), 'style' => 'text-align: right;', 'onClick' => 'this.select();']) ?>
+                </th>
+            </tr>
             <tr>
                 <th style="width: 55%; font-size: 150%"><?= lang(ucfirst($controller_name) . '.total') ?></th>
                 <th style="width: 45%; font-size: 150%; text-align: right;"><span id="sale_total"><?= to_currency($total) ?></span></th>
@@ -871,14 +873,21 @@ helper('url');
             }
         }
 
-        $('[name="price"],[name="quantity"],[name="discount"],[name="description"],[name="serialnumber"],[name="discounted_total"]').change(function() {
+        $('[name="price"],[name="quantity"],[name="description"],[name="serialnumber"],[name="discounted_total"]').change(function() {
             $(this).parents('tr').prevAll('form:first').submit()
         });
 
-        $('[name="discount_toggle"]').change(function() {
-            var input = $('<input>').attr('type', 'hidden').attr('name', 'discount_type').val(($(this).prop('checked')) ? 1 : 0);
-            $('#cart_' + $(this).attr('data-line')).append($(input));
-            $('#cart_' + $(this).attr('data-line')).submit();
+        // BigM: bill-level discount and service charge recompute the totals, so
+        // submit the form (which reloads the register) when they change.
+        $('.bigm-bill-adjustment').change(function() {
+            $('#bill_adjustments_form').submit();
+        });
+
+        $('.bigm-bill-adjustment').keypress(function(event) {
+            if (event.which == 13) {
+                $('#bill_adjustments_form').submit();
+                return false;
+            }
         });
     });
 

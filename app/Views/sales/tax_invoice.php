@@ -184,6 +184,21 @@ if (isset($error_message)) {
             </tr>
         <?php } ?>
 
+        <?php if ((float) ($service_charge ?? 0) != 0) { ?>
+            <tr>
+                <td colspan="<?= $invoice_columns - 3 ?>" class="blank"> </td>
+                <td colspan="2" class="total-line"><?= lang('Sales.service_charge') ?></td>
+                <td class="total-value"><?= to_currency($service_charge) ?></td>
+            </tr>
+        <?php } ?>
+        <?php if ((float) ($bill_discount ?? 0) != 0) { ?>
+            <tr>
+                <td colspan="<?= $invoice_columns - 3 ?>" class="blank"> </td>
+                <td colspan="2" class="total-line"><?= lang('Sales.bill_discount') ?></td>
+                <td class="total-value"><?= to_currency($bill_discount * -1) ?></td>
+            </tr>
+        <?php } ?>
+
         <tr>
             <td colspan="<?= $invoice_columns - 3 ?>" class="blank"> </td>
             <td colspan="2" class="total-line"><?= lang('Sales.total') ?></td>

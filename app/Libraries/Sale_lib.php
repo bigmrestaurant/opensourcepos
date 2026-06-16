@@ -735,6 +735,17 @@ class Sale_lib
         }
 
         $totals['subtotal'] = $subtotal;
+
+        // BigM: bill-level service charge and discount are applied to the whole
+        // bill after tax (as fixed amounts, not per-item). They never apply to an
+        // empty cart.
+        $service_charge = empty($this->get_cart()) ? '0' : $this->get_service_charge();
+        $bill_discount = empty($this->get_cart()) ? '0' : $this->get_bill_discount();
+        $total = bcadd($total, $service_charge);
+        $total = bcsub($total, $bill_discount);
+
+        $totals['service_charge'] = $service_charge;
+        $totals['bill_discount'] = $bill_discount;
         $totals['total'] = $total;
         $totals['tax_total'] = $sales_tax;
 
@@ -1392,6 +1403,12 @@ class Sale_lib
             $this->add_payment($row->payment_type, $row->payment_amount, $row->cash_adjustment);
         }
 
+        $bigm_fields = $this->sale->get_bigm_sale_fields($sale_id);
+        if ($bigm_fields !== null) {
+            $this->set_bill_discount((string) ($bigm_fields['bill_discount'] ?? '0'));
+            $this->set_service_charge((string) ($bigm_fields['service_charge'] ?? '0'));
+        }
+
         $this->set_customer($this->sale->get_customer($sale_id)->person_id);
         $this->set_employee($this->sale->get_employee($sale_id)->person_id);
         $this->set_quote_number($this->sale->get_quote_number($sale_id));
@@ -1472,31 +1489,6 @@ class Sale_lib
 
         // Do not charge sales tax if we have a customer that is not taxable
         return $customer->taxable or $customer_id == -1;    // TODO: Replace with constant.  Also, I'm not sure we should be using the or operator instead of || here. $a || $b guarantees that the result of those two get returned.  It's possible that return $a or $b could return just the result of $a since `or` has a lower precedence.
-    }
-
-    /**
-     * @param string $discount
-     * @param int $discount_type
-     * @return void
-     */
-    public function apply_customer_discount(string $discount, int $discount_type): void
-    {
-        // Get all items in the cart so far...
-        $items = $this->get_cart();
-
-        foreach ($items as &$item) {
-            $quantity = $item['quantity'];
-            $price = $item['price'];
-
-            // Set a new discount only if the current one is 0
-            if ($item['discount'] == 0.0) {    // TODO: === ?
-                $item['discount'] = $discount;
-                $item['total'] = $this->get_item_total($quantity, $price, $discount, $discount_type);
-                $item['discounted_total'] = $this->get_item_total($quantity, $price, $discount, $discount_type, true);
-            }
-        }
-
-        $this->set_cart($items);
     }
 
     /**
@@ -1699,6 +1691,12 @@ class Sale_lib
             }
         }
 
+        // BigM: apply bill-level service charge and discount after tax.
+        if (!empty($this->get_cart())) {
+            $total = bcadd($total, $this->get_service_charge());
+            $total = bcsub($total, $this->get_bill_discount());
+        }
+
         if ($include_cash_rounding && $cash_mode) {
             $total = $this->check_for_cash_rounding($total);
         }
@@ -1761,11 +1759,44 @@ class Sale_lib
         return (string) ($this->session->get('bigm_walkin_cnic') ?? '');
     }
 
+    public function set_bill_discount(?string $discount): void
+    {
+        $discount = $discount === null || $discount === '' ? '0' : $discount;
+        $this->session->set('bigm_bill_discount', $discount);
+    }
+
+    public function get_bill_discount(): string
+    {
+        $discount = $this->session->get('bigm_bill_discount');
+
+        return ($discount === null || $discount === '') ? '0' : (string) $discount;
+    }
+
+    public function set_service_charge(?string $service_charge): void
+    {
+        $service_charge = $service_charge === null || $service_charge === '' ? '0' : $service_charge;
+        $this->session->set('bigm_service_charge', $service_charge);
+    }
+
+    public function get_service_charge(): string
+    {
+        $service_charge = $this->session->get('bigm_service_charge');
+
+        return ($service_charge === null || $service_charge === '') ? '0' : (string) $service_charge;
+    }
+
+    public function clear_bill_adjustments(): void
+    {
+        $this->session->remove('bigm_bill_discount');
+        $this->session->remove('bigm_service_charge');
+    }
+
     public function clear_bigm_fields(): void
     {
         $this->session->remove('bigm_walkin_name');
         $this->session->remove('bigm_walkin_phone');
         $this->session->remove('bigm_walkin_cnic');
+        $this->clear_bill_adjustments();
     }
 
     public function is_card_payment(?string $paymentType = null): bool
@@ -1856,6 +1887,12 @@ class Sale_lib
             foreach ($this->get_card_taxes_summary() as $tax) {
                 $total = bcadd($total, $tax['sale_tax_amount']);
             }
+        }
+
+        // BigM: apply bill-level service charge and discount after tax.
+        if (!empty($this->get_cart())) {
+            $total = bcadd($total, $this->get_service_charge());
+            $total = bcsub($total, $this->get_bill_discount());
         }
 
         return $total;

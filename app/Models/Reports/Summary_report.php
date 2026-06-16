@@ -33,12 +33,18 @@ abstract class Summary_report extends Report
 
         $cash_adjustment = 'IFNULL(SUM(payments.sale_cash_adjustment), 0)';
 
+        // BigM: bill-level service charge and discount are stored once per sale.
+        // Count each sale's net adjustment once when rows are aggregated.
+        $min_line = '(SELECT MIN(bigm_si.line) FROM ' . $this->db->prefixTable('sales_items') . ' AS bigm_si WHERE bigm_si.sale_id = sales_items.sale_id)';
+        $bill_adjustment_line = "CASE WHEN sales_items.line = $min_line THEN (IFNULL(sales.service_charge, 0) - IFNULL(sales.bill_discount, 0)) ELSE 0 END";
+        $bill_adjustment = "SUM($bill_adjustment_line)";
+
         if ($config['tax_included']) {
-            $sale_total = "ROUND(SUM($sale_price), $decimals) + $cash_adjustment";
+            $sale_total = "ROUND(SUM($sale_price), $decimals) + $cash_adjustment + $bill_adjustment";
             $sale_subtotal = "$sale_total - $sales_tax";
         } else {
             $sale_subtotal = "ROUND(SUM($sale_price), $decimals) + $cash_adjustment";
-            $sale_total = "ROUND(SUM($sale_price), $decimals) + $sales_tax + $cash_adjustment";
+            $sale_total = "ROUND(SUM($sale_price), $decimals) + $sales_tax + $cash_adjustment + $bill_adjustment";
         }
 
         // Create a temporary table to contain all the sum of taxes per sale item
@@ -82,7 +88,7 @@ abstract class Summary_report extends Report
                 $sales_tax AS tax,
                 IFNULL($sale_total, $sale_subtotal) AS total,
                 $sale_cost AS cost,
-                (IFNULL($sale_subtotal, $sale_total) - $sale_cost) AS profit
+                (IFNULL($sale_total, $sale_subtotal) - $sale_cost) AS profit
         ");
     }
 

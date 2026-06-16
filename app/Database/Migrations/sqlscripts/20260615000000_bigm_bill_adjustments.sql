@@ -1,0 +1,3 @@
+ALTER TABLE `ospos_sales`
+    ADD COLUMN `bill_discount` DECIMAL(15,2) NOT NULL DEFAULT 0.00,
+    ADD COLUMN `service_charge` DECIMAL(15,2) NOT NULL DEFAULT 0.00;

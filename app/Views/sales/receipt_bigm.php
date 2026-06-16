@@ -9,6 +9,8 @@
  * @var float $subtotal
  * @var array $taxes
  * @var float $total
+ * @var float $service_charge
+ * @var float $bill_discount
  * @var array $payments
  * @var float $amount_change
  * @var array $config
@@ -118,6 +120,20 @@
             <tr>
                 <td colspan="4" style="text-align:right;"><?= esc((float) ($tax['tax_rate'] ?? 0) . '% ' . ($tax['tax_group'] ?? 'GST')) ?></td>
                 <td style="text-align:right;"><?= to_currency_tax($tax['sale_tax_amount'] ?? 0) ?></td>
+            </tr>
+        <?php } ?>
+
+        <?php if ((float) ($service_charge ?? 0) != 0) { ?>
+            <tr>
+                <td colspan="4" style="text-align:right;"><?= lang('Sales.service_charge') ?></td>
+                <td style="text-align:right;"><?= to_currency($service_charge) ?></td>
+            </tr>
+        <?php } ?>
+
+        <?php if ((float) ($bill_discount ?? 0) != 0) { ?>
+            <tr>
+                <td colspan="4" style="text-align:right;"><?= lang('Sales.bill_discount') ?></td>
+                <td style="text-align:right;"><?= to_currency($bill_discount * -1) ?></td>
             </tr>
         <?php } ?>
 

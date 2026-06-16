@@ -234,13 +234,7 @@ class Sales extends Secure_Controller
         $customer_id = (int)$this->request->getPost('customer', FILTER_SANITIZE_NUMBER_INT);
         if ($this->customer->exists($customer_id)) {
             $this->sale_lib->set_customer($customer_id);
-            $discount = $this->customer->get_info($customer_id)->discount;
-            $discount_type = $this->customer->get_info($customer_id)->discount_type;
-
-            // Apply customer default discount to items that have 0 discount
-            if ($discount != '') {
-                $this->sale_lib->apply_customer_discount($discount, $discount_type);
-            }
+            // BigM: discounts are applied at the bill level, not per-item/per-customer.
         }
 
         return $this->_reload();
@@ -293,6 +287,9 @@ class Sales extends Secure_Controller
 
         $this->sale_lib->empty_payments();
 
+        // BigM: bill-level adjustments should not carry over between modes.
+        $this->sale_lib->clear_bill_adjustments();
+
         return $this->_reload();
     }
 
@@ -338,6 +335,47 @@ class Sales extends Secure_Controller
         $this->apply_bigm_fields_from_request();
 
         return $this->response->setJSON(['success' => true]);
+    }
+
+    /**
+     * Persist BigM bill-level discount and service charge from the register form.
+     * These are fixed amounts applied to the whole bill after tax, so the register
+     * is reloaded to recompute the totals.
+     *
+     * @return ResponseInterface|string
+     * @noinspection PhpUnused
+     */
+    public function postSetBillAdjustments(): ResponseInterface|string
+    {
+        $data = [];
+
+        $bill_discount = parse_decimals($this->request->getPost('bill_discount'));
+        $service_charge = parse_decimals($this->request->getPost('service_charge'));
+
+        $bill_discount = $bill_discount < 0 ? 0 : $bill_discount;
+        $service_charge = $service_charge < 0 ? 0 : $service_charge;
+
+        $this->sale_lib->set_service_charge((string) $service_charge);
+
+        // Cap the discount at the after-tax bill total (including service charge)
+        // so it can never push the total negative. Card payments are taxed at a
+        // lower rate, so use the smaller of the standard and card totals to make
+        // sure the discount is safe regardless of the payment method chosen.
+        $this->sale_lib->set_bill_discount('0');
+        $standard_total = (float) $this->sale_lib->get_total(false);
+        $card_total = (float) $this->sale_lib->get_card_total();
+        $max_discount = min($standard_total, $card_total);
+        $max_discount = $max_discount < 0 ? 0 : $max_discount;
+        if ($bill_discount > $max_discount) {
+            $bill_discount = $max_discount;
+            $data['warning'] = lang('Sales.bill_discount_capped');
+        }
+        $this->sale_lib->set_bill_discount((string) $bill_discount);
+
+        // Totals changed, so any existing payments must be re-entered.
+        $this->sale_lib->empty_payments();
+
+        return $this->_reload($data);
     }
 
     /**
@@ -518,20 +556,9 @@ class Sales extends Secure_Controller
     {
         $data = [];
 
-        $discount = $this->config['default_sales_discount'];
-        $discount_type = $this->config['default_sales_discount_type'];
-
-        // Check if any discount is assigned to the selected customer
-        $customer_id = $this->sale_lib->get_customer();
-        if ($customer_id != NEW_ENTRY) {
-            // Load the customer discount if any
-            $customer_discount = $this->customer->get_info($customer_id)->discount;
-            $customer_discount_type = $this->customer->get_info($customer_id)->discount_type;
-            if ($customer_discount != '') {
-                $discount = $customer_discount;
-                $discount_type = $customer_discount_type;
-            }
-        }
+        // BigM: no per-item discounts. Discounts are applied at the bill level.
+        $discount = 0;
+        $discount_type = 0;
 
         $item_id_or_number_or_item_kit_or_receipt = $this->request->getPost('item', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
         $this->token_lib->parse_barcode($quantity, $price, $item_id_or_number_or_item_kit_or_receipt);
@@ -602,15 +629,11 @@ class Sales extends Secure_Controller
         $rules = [
             'price'    => 'trim|required|decimal_locale|nonNegativeDecimal',
             'quantity' => 'trim|required|decimal_locale',
-            'discount' => 'trim|permit_empty|decimal_locale|nonNegativeDecimal',
         ];
 
         $messages = [
             'price' => [
                 'nonNegativeDecimal' => lang('Sales.negative_price_invalid'),
-            ],
-            'discount' => [
-                'nonNegativeDecimal' => lang('Sales.negative_discount_invalid'),
             ],
         ];
 
@@ -619,26 +642,14 @@ class Sales extends Secure_Controller
             $serialnumber = $this->request->getPost('serialnumber', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
             $price = parse_decimals($this->request->getPost('price'));
             $quantity = parse_decimals($this->request->getPost('quantity'));
-            $discount_type = $this->request->getPost('discount_type', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
-            $discount = $discount_type
-                ? parse_quantity($this->request->getPost('discount'))
-                : parse_decimals($this->request->getPost('discount'));
-            $discount = $discount ?: 0;
+
+            // BigM: no per-item discounts.
+            $discount = 0;
+            $discount_type = 0;
 
             // Return mode legitimately uses negative quantities for refunds
             if ($this->sale_lib->get_mode() != 'return' && $quantity < 0) {
                 $data['error'] = lang('Sales.negative_quantity_invalid');
-                return $this->_reload($data);
-            }
-
-            // Business logic: discount bounds depend on discount_type and item values
-            if ($discount_type == PERCENT && $discount > 100) {
-                $data['error'] = lang('Sales.discount_percent_exceeds_100');
-                return $this->_reload($data);
-            }
-
-            if ($discount_type == FIXED && bccomp((string)$discount, bcmul((string)abs($quantity), (string)$price, 2), 2) > 0) {
-                $data['error'] = lang('Sales.discount_exceeds_item_total');
                 return $this->_reload($data);
             }
 
@@ -758,6 +769,8 @@ class Sales extends Secure_Controller
         $totals = $this->sale_lib->get_totals($tax_details[0]);
         $data['subtotal'] = $totals['subtotal'];
         $data['total'] = $totals['total'];
+        $data['service_charge'] = $totals['service_charge'];
+        $data['bill_discount'] = $totals['bill_discount'];
         $data['payments_total'] = $totals['payment_total'];
         $data['payments_cover_total'] = $totals['payments_cover_total'];
         $data['cash_rounding'] = $this->session->get('cash_rounding');
@@ -1125,6 +1138,8 @@ class Sales extends Secure_Controller
         $totals = $this->sale_lib->get_totals($tax_details[0]);
         $this->session->set('cash_adjustment_amount', $totals['cash_adjustment_amount']);
         $data['subtotal'] = $totals['subtotal'];
+        $data['service_charge'] = $totals['service_charge'];
+        $data['bill_discount'] = $totals['bill_discount'];
         $data['payments_total'] = $totals['payment_total'];
         $data['payments_cover_total'] = $totals['payments_cover_total'];
         $data['cash_mode'] = $this->session->get('cash_mode');    // TODO: Duplicated code.
@@ -1271,6 +1286,15 @@ class Sales extends Secure_Controller
         $this->apply_bigm_fields_from_request();
         $tax_details = $this->apply_bigm_tax_and_totals($data, $tax_details);
         $this->populate_bigm_register_data($data);
+
+        // Bill-level adjustments never apply to an empty cart, so drop them when
+        // there are no items to keep the inputs in sync with the displayed totals.
+        if (empty($this->sale_lib->get_cart())) {
+            $this->sale_lib->clear_bill_adjustments();
+        }
+
+        $data['bill_discount'] = $this->sale_lib->get_bill_discount();
+        $data['service_charge'] = $this->sale_lib->get_service_charge();
 
         $data['comment'] = $this->sale_lib->get_comment();
         $data['email_receipt'] = $this->sale_lib->is_email_receipt();
