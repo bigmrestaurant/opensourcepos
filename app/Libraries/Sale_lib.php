@@ -706,10 +706,9 @@ class Sale_lib
         $total_units = 0.0;
 
         foreach ($this->get_cart() as $item) {
-            if ($item['stock_type'] == HAS_STOCK) {
-                $item_count++;
-                $total_units += $item['quantity'];
-            }
+            $item_count++;
+            $total_units += $item['quantity'];
+
             $discount_amount = $this->get_item_discount($item['quantity'], $item['price'], $item['discount'], $item['discount_type']);
             $total_discount = bcadd($total_discount, $discount_amount);
 
@@ -741,6 +740,7 @@ class Sale_lib
         // empty cart.
         $service_charge = empty($this->get_cart()) ? '0' : $this->get_service_charge();
         $bill_discount = empty($this->get_cart()) ? '0' : $this->get_bill_discount();
+        $totals['total_before_adjustments'] = empty($this->get_cart()) ? '0' : $total;
         $total = bcadd($total, $service_charge);
         $total = bcsub($total, $bill_discount);
 
@@ -1705,6 +1705,28 @@ class Sale_lib
     }
 
     /**
+     * After-tax bill total before service charge and discount (standard/cash tax rate).
+     */
+    public function get_total_before_adjustments(): string
+    {
+        if (empty($this->get_cart())) {
+            return '0';
+        }
+
+        $total = $this->calculate_subtotal(true);
+
+        if (!$this->config['tax_included']) {
+            $tax_lib = new Tax_lib();
+
+            foreach ($tax_lib->get_taxes($this->get_cart())[0] as $tax) {
+                $total = bcadd($total, $tax['sale_tax_amount']);
+            }
+        }
+
+        return $total;
+    }
+
+    /**
      * @param int|null $current_dinner_table_id
      * @return array
      */
@@ -1893,6 +1915,26 @@ class Sale_lib
         if (!empty($this->get_cart())) {
             $total = bcadd($total, $this->get_service_charge());
             $total = bcsub($total, $this->get_bill_discount());
+        }
+
+        return $total;
+    }
+
+    /**
+     * After-tax bill total before service charge and discount (card tax rate).
+     */
+    public function get_card_total_before_adjustments(): string
+    {
+        if (empty($this->get_cart())) {
+            return '0';
+        }
+
+        $total = $this->get_card_subtotal();
+
+        if (!$this->config['tax_included']) {
+            foreach ($this->get_card_taxes_summary() as $tax) {
+                $total = bcadd($total, $tax['sale_tax_amount']);
+            }
         }
 
         return $total;

@@ -723,6 +723,7 @@ class Sales extends Secure_Controller
 
         $data['include_hsn'] = (bool)$this->config['include_hsn'];
         $__time = time();
+        $data['transaction_timestamp'] = $__time;
         $data['transaction_time'] = to_datetime($__time);
         $data['transaction_date'] = to_date($__time);
         $data['show_stock_locations'] = $this->stock_location->show_locations('sales');
@@ -1128,7 +1129,8 @@ class Sales extends Secure_Controller
         $tax_details = $this->tax_lib->get_taxes($data['cart'], $sale_id);
         $data['taxes'] = $this->sale->get_sales_taxes($sale_id);
         $data['discount'] = $this->sale_lib->get_discount();
-        $data['transaction_time'] = to_datetime(strtotime($sale_info['sale_time']));
+        $data['transaction_timestamp'] = strtotime($sale_info['sale_time']);
+        $data['transaction_time'] = to_datetime($data['transaction_timestamp']);
         $data['transaction_date'] = to_date(strtotime($sale_info['sale_time']));
         $data['show_stock_locations'] = $this->stock_location->show_locations('sales');
 
@@ -1258,6 +1260,7 @@ class Sales extends Secure_Controller
         $data['item_count'] = $totals['item_count'];
         $data['total_units'] = $totals['total_units'];
         $data['subtotal'] = $totals['subtotal'];
+        $data['total_before_adjustments'] = $totals['total_before_adjustments'];
         $data['total'] = $totals['total'];
         $data['payments_total'] = $totals['payment_total'];
         $data['payments_cover_total'] = $totals['payments_cover_total'];
@@ -1882,6 +1885,7 @@ class Sales extends Secure_Controller
         if ($cardOnly) {
             $taxDetails = $this->sale_lib->apply_card_tax_details($taxDetails, $data['cart']);
             $data['taxes'] = $taxDetails[0];
+            $data['total_before_adjustments'] = $this->sale_lib->get_card_total_before_adjustments();
             $data['total'] = $this->sale_lib->get_card_total();
             $data['amount_due'] = bcsub($data['total'], (string) ($data['payments_total'] ?? 0), totals_decimals());
             $data['amount_change'] = bcmul($data['amount_due'], '-1', totals_decimals());
@@ -1917,10 +1921,10 @@ class Sales extends Secure_Controller
             }
         }
 
-        $data['bigm_cash_total']      = $data['total'] ?? '0';
+        $data['bigm_cash_total']      = $this->sale_lib->get_total_before_adjustments();
         $data['bigm_cash_tax_amount'] = $cashTaxAmount;
         $data['bigm_cash_tax_label']  = $cashTaxLabel;
-        $data['bigm_cash_amount_due'] = bcsub((string) $data['bigm_cash_total'], (string) ($data['payments_total'] ?? 0), totals_decimals());
+        $data['bigm_cash_amount_due'] = bcsub((string) ($data['cash_total'] ?? $this->sale_lib->get_total(false)), (string) ($data['payments_total'] ?? 0), totals_decimals());
 
         $cardTaxAmount = '0';
         $cardTaxLabel  = '';
@@ -1931,10 +1935,10 @@ class Sales extends Secure_Controller
             }
         }
 
-        $data['bigm_card_total']         = $this->sale_lib->get_card_total();
+        $data['bigm_card_total']         = $this->sale_lib->get_card_total_before_adjustments();
         $data['bigm_card_tax_amount']    = $cardTaxAmount;
         $data['bigm_card_tax_label']     = $cardTaxLabel;
-        $data['bigm_card_amount_due']    = bcsub((string) $data['bigm_card_total'], (string) ($data['payments_total'] ?? 0), totals_decimals());
+        $data['bigm_card_amount_due']    = bcsub($this->sale_lib->get_card_total(), (string) ($data['payments_total'] ?? 0), totals_decimals());
         $data['bigm_card_payment_label'] = lang('Sales.credit');
         $data['bigm_payments_include_cash'] = $this->sale_lib->payments_include_cash($data['payments'] ?? []);
         $data['bigm_payments_include_card'] = $this->sale_lib->payments_include_card($data['payments'] ?? []);

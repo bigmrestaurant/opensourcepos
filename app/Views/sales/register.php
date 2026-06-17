@@ -18,6 +18,7 @@
  * @var float|int $item_count
  * @var float|int $total_units
  * @var float $subtotal
+ * @var float $total_before_adjustments
  * @var array $taxes
  * @var float $total
  * @var float $service_charge
@@ -228,6 +229,13 @@ helper('url');
                                 </a>
                             </td>
                         </tr>
+                        <?php
+                        $show_details_row = $item['item_type'] == ITEM_TEMP
+                            || $item['allow_alt_description']
+                            || $item['description'] != ''
+                            || $item['is_serialized'];
+                        if ($show_details_row) {
+                        ?>
                         <tr>
                             <?php if ($item['item_type'] == ITEM_TEMP) { ?>
                                 <td><?= form_input(['type' => 'hidden', 'name' => 'item_id', 'value' => $item['item_id']]) ?></td>
@@ -250,7 +258,6 @@ helper('url');
                                             echo esc($item['description']);
                                             echo form_hidden('description', $item['description']);
                                         } else {
-                                            echo lang(ucfirst($controller_name) . '.no_description');
                                             echo form_hidden('description', '');
                                         }
                                     }
@@ -275,6 +282,10 @@ helper('url');
                                 </td>
                             <?php } ?>
                         </tr>
+                        <?php } else { ?>
+                            <?= form_hidden('description', '') ?>
+                            <?= form_hidden('serialnumber', '') ?>
+                        <?php } ?>
                     <?= form_close() ?>
             <?php
                 }
@@ -400,20 +411,8 @@ helper('url');
                 </tr>
             <?php } ?>
             <tr>
-                <th style="width: 55%;"><?= lang(ucfirst($controller_name) . '.service_charge') ?></th>
-                <th style="width: 45%; text-align: right;">
-                    <?= form_input(['name' => 'service_charge', 'id' => 'service_charge', 'form' => 'bill_adjustments_form', 'class' => 'form-control input-sm bigm-bill-adjustment', 'value' => to_currency_no_money($service_charge ?? 0), 'style' => 'text-align: right;', 'onClick' => 'this.select();']) ?>
-                </th>
-            </tr>
-            <tr>
-                <th style="width: 55%;"><?= lang(ucfirst($controller_name) . '.bill_discount') ?></th>
-                <th style="width: 45%; text-align: right;">
-                    <?= form_input(['name' => 'bill_discount', 'id' => 'bill_discount', 'form' => 'bill_adjustments_form', 'class' => 'form-control input-sm bigm-bill-adjustment', 'value' => to_currency_no_money($bill_discount ?? 0), 'style' => 'text-align: right;', 'onClick' => 'this.select();']) ?>
-                </th>
-            </tr>
-            <tr>
                 <th style="width: 55%; font-size: 150%"><?= lang(ucfirst($controller_name) . '.total') ?></th>
-                <th style="width: 45%; font-size: 150%; text-align: right;"><span id="sale_total"><?= to_currency($total) ?></span></th>
+                <th style="width: 45%; font-size: 150%; text-align: right;"><span id="sale_total"><?= to_currency($total_before_adjustments ?? 0) ?></span></th>
             </tr>
         </table>
 
@@ -422,6 +421,18 @@ helper('url');
                 <tr>
                     <th style="width: 55%;"><?= lang(ucfirst($controller_name) . '.payments_total') ?></th>
                     <th style="width: 45%; text-align: right;"><?= to_currency($payments_total) ?></th>
+                </tr>
+                <tr>
+                    <th style="width: 55%;"><?= lang(ucfirst($controller_name) . '.service_charge') ?></th>
+                    <th style="width: 45%; text-align: right;">
+                        <?= form_input(['name' => 'service_charge', 'id' => 'service_charge', 'form' => 'bill_adjustments_form', 'class' => 'form-control input-sm bigm-bill-adjustment', 'value' => to_currency_no_money($service_charge ?? 0), 'style' => 'text-align: right;', 'onClick' => 'this.select();']) ?>
+                    </th>
+                </tr>
+                <tr>
+                    <th style="width: 55%;"><?= lang(ucfirst($controller_name) . '.bill_discount') ?></th>
+                    <th style="width: 45%; text-align: right;">
+                        <?= form_input(['name' => 'bill_discount', 'id' => 'bill_discount', 'form' => 'bill_adjustments_form', 'class' => 'form-control input-sm bigm-bill-adjustment', 'value' => to_currency_no_money($bill_discount ?? 0), 'style' => 'text-align: right;', 'onClick' => 'this.select();']) ?>
+                    </th>
                 </tr>
                 <tr>
                     <th style="width: 55%; font-size: 120%"><?= lang(ucfirst($controller_name) . '.amount_due') ?></th>
@@ -895,7 +906,7 @@ helper('url');
         var cash_mode = <?= json_encode($cash_mode) ?>;
 
         if ($("#payment_types").val() == "<?= lang(ucfirst($controller_name) . '.giftcard') ?>") {
-            $("#sale_total").html("<?= to_currency($total) ?>");
+            $("#sale_total").html("<?= to_currency($total_before_adjustments) ?>");
             $("#sale_amount_due").html("<?= to_currency($amount_due) ?>");
             $("#amount_tendered_label").html("<?= lang(ucfirst($controller_name) . '.giftcard_number') ?>");
             $("#amount_tendered:enabled").val('').focus();
@@ -903,14 +914,14 @@ helper('url');
             $(".non-giftcard-input").attr('disabled', true);
             $(".giftcard-input:enabled").val('').focus();
         } else if (($("#payment_types").val() == "<?= lang(ucfirst($controller_name) . '.cash') ?>" && cash_mode == '1')) {
-            $("#sale_total").html("<?= to_currency($non_cash_total) ?>");
+            $("#sale_total").html("<?= to_currency($total_before_adjustments) ?>");
             $("#sale_amount_due").html("<?= to_currency($cash_amount_due) ?>");
             $("#amount_tendered_label").html("<?= lang(ucfirst($controller_name) . '.amount_tendered') ?>");
             $("#amount_tendered:enabled").val("<?= to_currency_no_money($cash_amount_due) ?>");
             $(".giftcard-input").attr('disabled', true);
             $(".non-giftcard-input").attr('disabled', false);
         } else {
-            $("#sale_total").html("<?= to_currency($non_cash_total) ?>");
+            $("#sale_total").html("<?= to_currency($total_before_adjustments) ?>");
             $("#sale_amount_due").html("<?= to_currency($amount_due) ?>");
             $("#amount_tendered_label").html("<?= lang(ucfirst($controller_name) . '.amount_tendered') ?>");
             $("#amount_tendered:enabled").val("<?= to_currency_no_money($amount_due) ?>");
@@ -921,9 +932,9 @@ helper('url');
 
 <?php if (isset($bigm_card_total)) { ?>
     // BigM: cash is taxed at the standard GST rate, card at 5%. Swap the GST row,
-    // total, amount due and amount tendered client-side so the cashier sees the
-    // correct figures immediately. Once a payment exists, the payment itself wins:
-    // cash keeps the standard rate, while card-only payments keep the 5% rate.
+    // subtotal+tax total, amount due and amount tendered client-side so the
+    // cashier sees the correct figures immediately. Service charge and discount
+    // stay in the payment section and only affect amount due.
     function bigm_update_payment_tax() {
         var card_label = "<?= esc($bigm_card_payment_label, 'js') ?>";
         var payments_include_cash = <?= json_encode((bool) ($bigm_payments_include_cash ?? false)) ?>;
