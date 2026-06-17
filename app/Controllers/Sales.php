@@ -1260,7 +1260,11 @@ class Sales extends Secure_Controller
         $data['item_count'] = $totals['item_count'];
         $data['total_units'] = $totals['total_units'];
         $data['subtotal'] = $totals['subtotal'];
-        $data['total_before_adjustments'] = $totals['total_before_adjustments'];
+        $data['total_before_adjustments'] = $totals['total_before_adjustments']
+            ?? bcsub(
+                bcadd((string) ($totals['total'] ?? '0'), (string) ($totals['bill_discount'] ?? '0')),
+                (string) ($totals['service_charge'] ?? '0')
+            );
         $data['total'] = $totals['total'];
         $data['payments_total'] = $totals['payment_total'];
         $data['payments_cover_total'] = $totals['payments_cover_total'];
@@ -1885,7 +1889,9 @@ class Sales extends Secure_Controller
         if ($cardOnly) {
             $taxDetails = $this->sale_lib->apply_card_tax_details($taxDetails, $data['cart']);
             $data['taxes'] = $taxDetails[0];
-            $data['total_before_adjustments'] = $this->sale_lib->get_card_total_before_adjustments();
+            $data['total_before_adjustments'] = method_exists($this->sale_lib, 'get_card_total_before_adjustments')
+                ? $this->sale_lib->get_card_total_before_adjustments()
+                : ($data['total_before_adjustments'] ?? $data['total']);
             $data['total'] = $this->sale_lib->get_card_total();
             $data['amount_due'] = bcsub($data['total'], (string) ($data['payments_total'] ?? 0), totals_decimals());
             $data['amount_change'] = bcmul($data['amount_due'], '-1', totals_decimals());
@@ -1912,33 +1918,41 @@ class Sales extends Secure_Controller
      */
     private function populate_bigm_payment_previews(array &$data): void
     {
+        $paymentsTotal = (string) ($data['payments_total'] ?? '0');
+        $cashTotal = (string) ($data['cash_total'] ?? '0');
+
         $cashTaxAmount = '0';
         $cashTaxLabel  = '';
         foreach (($data['taxes'] ?? []) as $tax) {
-            $cashTaxAmount = bcadd($cashTaxAmount, (string) $tax['sale_tax_amount'], totals_decimals());
+            $cashTaxAmount = bcadd($cashTaxAmount, (string) ($tax['sale_tax_amount'] ?? '0'), totals_decimals());
             if ($cashTaxLabel === '') {
                 $cashTaxLabel = (float) $tax['tax_rate'] . '% ' . $tax['tax_group'];
             }
         }
 
-        $data['bigm_cash_total']      = $this->sale_lib->get_total_before_adjustments();
+        $data['bigm_cash_total']      = (string) ($data['total_before_adjustments']
+            ?? (method_exists($this->sale_lib, 'get_total_before_adjustments')
+                ? $this->sale_lib->get_total_before_adjustments()
+                : ($data['total'] ?? '0')));
         $data['bigm_cash_tax_amount'] = $cashTaxAmount;
         $data['bigm_cash_tax_label']  = $cashTaxLabel;
-        $data['bigm_cash_amount_due'] = bcsub((string) ($data['cash_total'] ?? $this->sale_lib->get_total(false)), (string) ($data['payments_total'] ?? 0), totals_decimals());
+        $data['bigm_cash_amount_due'] = bcsub($cashTotal, $paymentsTotal, totals_decimals());
 
         $cardTaxAmount = '0';
         $cardTaxLabel  = '';
         foreach ($this->sale_lib->get_card_taxes_summary() as $tax) {
-            $cardTaxAmount = bcadd($cardTaxAmount, (string) $tax['sale_tax_amount'], totals_decimals());
+            $cardTaxAmount = bcadd($cardTaxAmount, (string) ($tax['sale_tax_amount'] ?? '0'), totals_decimals());
             if ($cardTaxLabel === '') {
                 $cardTaxLabel = (float) $tax['tax_rate'] . '% ' . $tax['tax_group'];
             }
         }
 
-        $data['bigm_card_total']         = $this->sale_lib->get_card_total_before_adjustments();
+        $data['bigm_card_total']         = method_exists($this->sale_lib, 'get_card_total_before_adjustments')
+            ? $this->sale_lib->get_card_total_before_adjustments()
+            : (string) ($data['total_before_adjustments'] ?? $data['total'] ?? '0');
         $data['bigm_card_tax_amount']    = $cardTaxAmount;
         $data['bigm_card_tax_label']     = $cardTaxLabel;
-        $data['bigm_card_amount_due']    = bcsub($this->sale_lib->get_card_total(), (string) ($data['payments_total'] ?? 0), totals_decimals());
+        $data['bigm_card_amount_due']    = bcsub((string) $this->sale_lib->get_card_total(), $paymentsTotal, totals_decimals());
         $data['bigm_card_payment_label'] = lang('Sales.credit');
         $data['bigm_payments_include_cash'] = $this->sale_lib->payments_include_cash($data['payments'] ?? []);
         $data['bigm_payments_include_card'] = $this->sale_lib->payments_include_card($data['payments'] ?? []);

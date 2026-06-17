@@ -906,23 +906,23 @@ helper('url');
         var cash_mode = <?= json_encode($cash_mode) ?>;
 
         if ($("#payment_types").val() == "<?= lang(ucfirst($controller_name) . '.giftcard') ?>") {
-            $("#sale_total").html("<?= to_currency($total_before_adjustments) ?>");
-            $("#sale_amount_due").html("<?= to_currency($amount_due) ?>");
+            $("#sale_total").html(<?= json_encode(to_currency($total_before_adjustments ?? 0)) ?>);
+            $("#sale_amount_due").html(<?= json_encode(to_currency($amount_due ?? 0)) ?>);
             $("#amount_tendered_label").html("<?= lang(ucfirst($controller_name) . '.giftcard_number') ?>");
             $("#amount_tendered:enabled").val('').focus();
             $(".giftcard-input").attr('disabled', false);
             $(".non-giftcard-input").attr('disabled', true);
             $(".giftcard-input:enabled").val('').focus();
         } else if (($("#payment_types").val() == "<?= lang(ucfirst($controller_name) . '.cash') ?>" && cash_mode == '1')) {
-            $("#sale_total").html("<?= to_currency($total_before_adjustments) ?>");
-            $("#sale_amount_due").html("<?= to_currency($cash_amount_due) ?>");
+            $("#sale_total").html(<?= json_encode(to_currency($total_before_adjustments ?? 0)) ?>);
+            $("#sale_amount_due").html(<?= json_encode(to_currency($cash_amount_due ?? 0)) ?>);
             $("#amount_tendered_label").html("<?= lang(ucfirst($controller_name) . '.amount_tendered') ?>");
             $("#amount_tendered:enabled").val("<?= to_currency_no_money($cash_amount_due) ?>");
             $(".giftcard-input").attr('disabled', true);
             $(".non-giftcard-input").attr('disabled', false);
         } else {
-            $("#sale_total").html("<?= to_currency($total_before_adjustments) ?>");
-            $("#sale_amount_due").html("<?= to_currency($amount_due) ?>");
+            $("#sale_total").html(<?= json_encode(to_currency($total_before_adjustments ?? 0)) ?>);
+            $("#sale_amount_due").html(<?= json_encode(to_currency($amount_due ?? 0)) ?>);
             $("#amount_tendered_label").html("<?= lang(ucfirst($controller_name) . '.amount_tendered') ?>");
             $("#amount_tendered:enabled").val("<?= to_currency_no_money($amount_due) ?>");
             $(".giftcard-input").attr('disabled', true);
