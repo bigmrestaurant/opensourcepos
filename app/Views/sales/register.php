@@ -419,10 +419,6 @@ helper('url');
         <?php if (count($cart) > 0) { // Only show this part if there are Items already in the register ?>
             <table class="sales_table_100" id="payment_totals">
                 <tr>
-                    <th style="width: 55%;"><?= lang(ucfirst($controller_name) . '.payments_total') ?></th>
-                    <th style="width: 45%; text-align: right;"><?= to_currency($payments_total) ?></th>
-                </tr>
-                <tr>
                     <th style="width: 55%;"><?= lang(ucfirst($controller_name) . '.service_charge') ?></th>
                     <th style="width: 45%; text-align: right;">
                         <?= form_input(['name' => 'service_charge', 'id' => 'service_charge', 'form' => 'bill_adjustments_form', 'class' => 'form-control input-sm bigm-bill-adjustment', 'value' => to_currency_no_money($service_charge ?? 0), 'style' => 'text-align: right;', 'onClick' => 'this.select();']) ?>
@@ -433,6 +429,10 @@ helper('url');
                     <th style="width: 45%; text-align: right;">
                         <?= form_input(['name' => 'bill_discount', 'id' => 'bill_discount', 'form' => 'bill_adjustments_form', 'class' => 'form-control input-sm bigm-bill-adjustment', 'value' => to_currency_no_money($bill_discount ?? 0), 'style' => 'text-align: right;', 'onClick' => 'this.select();']) ?>
                     </th>
+                </tr>
+                <tr>
+                    <th style="width: 55%;"><?= lang(ucfirst($controller_name) . '.payments_total') ?></th>
+                    <th style="width: 45%; text-align: right;"><span id="sale_payments_total"><?= to_currency($payments_total) ?></span></th>
                 </tr>
                 <tr>
                     <th style="width: 55%; font-size: 120%"><?= lang(ucfirst($controller_name) . '.amount_due') ?></th>
@@ -454,7 +454,7 @@ helper('url');
                             <tr>
                                 <td><span id="amount_tendered_label"><?= lang(ucfirst($controller_name) . '.amount_tendered') ?></span></td>
                                 <td>
-                                    <?= form_input(['name' => 'amount_tendered', 'id' => 'amount_tendered', 'class' => 'form-control input-sm disabled', 'disabled' => 'disabled', 'value' => '0', 'size' => '5', 'tabindex' => ++$tabindex, 'onClick' => 'this.select();']) ?>
+                                    <?= form_input(['name' => 'amount_tendered', 'id' => 'amount_tendered', 'class' => 'form-control input-sm disabled', 'disabled' => 'disabled', 'value' => to_currency_no_money($payments_total), 'size' => '5', 'tabindex' => ++$tabindex, 'onClick' => 'this.select();']) ?>
                                 </td>
                             </tr>
                         </table>
@@ -607,6 +607,7 @@ helper('url');
 <script type="text/javascript">
     const keyboardShortcuts = <?= json_encode($keyboardShortcuts ?? []) ?>;
     const paymentsCoverTotal = <?= json_encode((bool) $payments_cover_total) ?>;
+    const paymentsTotal = <?= json_encode(to_currency_no_money($payments_total)) ?>;
     const shortcutCodes = {
         items: keyboardShortcuts?.items?.code ?? null,
         customers: keyboardShortcuts?.customers?.code ?? null,
@@ -914,6 +915,12 @@ helper('url');
         });
     });
 
+    function setAmountTenderedDisplay() {
+        if (paymentsCoverTotal) {
+            $("#amount_tendered").val(paymentsTotal);
+        }
+    }
+
     function check_payment_type() {
         var cash_mode = <?= json_encode($cash_mode) ?>;
 
@@ -940,6 +947,8 @@ helper('url');
             $(".giftcard-input").attr('disabled', true);
             $(".non-giftcard-input").attr('disabled', false);
         }
+
+        setAmountTenderedDisplay();
     }
 
 <?php if (isset($bigm_card_total)) { ?>
@@ -967,7 +976,12 @@ helper('url');
         $(".bigm-tax-amount").first().html(tax_amount);
         $("#sale_total").html(total);
         $("#sale_amount_due").html(amount_due);
-        $("#amount_tendered:enabled").val(tendered);
+
+        if (paymentsCoverTotal) {
+            $("#amount_tendered").val(paymentsTotal);
+        } else {
+            $("#amount_tendered:enabled").val(tendered);
+        }
     }
 <?php } ?>
 
