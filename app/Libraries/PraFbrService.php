@@ -11,6 +11,8 @@ class PraFbrService
     private string $fbrUrl;
     private string $praPosId;
     private string $fbrPosId;
+    private string $praToken;
+    private string $fbrToken;
     private Sale_lib $sale_lib;
 
     public function __construct()
@@ -19,6 +21,8 @@ class PraFbrService
         $this->fbrUrl = env('fiscal.fbr.url', '');
         $this->praPosId = env('fiscal.pra.posId', '128963');
         $this->fbrPosId = env('fiscal.fbr.posId', '186268');
+        $this->praToken = env('fiscal.pra.token', '');
+        $this->fbrToken = env('fiscal.fbr.token', '');
         $this->sale_lib = new Sale_lib();
     }
 
@@ -34,38 +38,57 @@ class PraFbrService
         $usin = 'BIGM-' . date('YmdHis') . '-' . ($saleId > 0 ? $saleId : mt_rand(1000, 9999));
 
         return [
-            'pra_invoice_number' => $this->requestInvoiceNumber($saleData, $this->praUrl, $this->praPosId, $usin, 'PRA'),
-            'fbr_invoice_number' => $this->requestInvoiceNumber($saleData, $this->fbrUrl, $this->fbrPosId, $usin . '-FBR', 'FBR'),
+            'pra_invoice_number' => $this->requestInvoiceNumber($saleData, $this->praUrl, $this->praPosId, $this->praToken, $usin, 'PRA'),
+            'fbr_invoice_number' => $this->requestInvoiceNumber($saleData, $this->fbrUrl, $this->fbrPosId, $this->fbrToken, $usin . '-FBR', 'FBR'),
         ];
     }
 
     /**
      * Request a single fiscal invoice number from the given endpoint.
      */
-    private function requestInvoiceNumber(array $saleData, string $url, string $posId, string $usin, string $authority): string
+    private function requestInvoiceNumber(array $saleData, string $url, string $posId, string $token, string $usin, string $authority): string
     {
+        $authorityKey = strtolower($authority);
+
         if ($url === '') {
-            log_message('warning', "{$authority} fiscal URL not configured in .env (fiscal." . strtolower($authority) . '.url)');
+            log_message('warning', "{$authority} fiscal URL not configured in .env (fiscal.{$authorityKey}.url)");
 
             return '';
         }
 
-        $response = $this->callPostRequest($url, $this->buildPayload($saleData, $posId, $usin));
+        if ($token === '') {
+            log_message('warning', "{$authority} fiscal token not configured in .env (fiscal.{$authorityKey}.token)");
+
+            return '';
+        }
+
+        $response = $this->callPostRequest($url, $this->buildPayload($saleData, $posId, $usin), $token);
         $data = json_decode($response, true);
 
         return is_array($data) && isset($data['InvoiceNumber']) ? (string) $data['InvoiceNumber'] : '';
     }
 
-    private function callPostRequest(string $url, array $data): string
+    /**
+     * @return list<string>
+     */
+    private function buildRequestHeaders(string $json, string $bearerToken): array
+    {
+        $headers = [
+            'Content-Type: application/json',
+            'Content-Length: ' . strlen($json),
+            'Authorization: Bearer ' . $bearerToken,
+        ];
+
+        return $headers;
+    }
+
+    private function callPostRequest(string $url, array $data, string $bearerToken): string
     {
         $json = json_encode($data);
         $curl = curl_init($url);
         curl_setopt($curl, CURLOPT_POST, true);
         curl_setopt($curl, CURLOPT_POSTFIELDS, $json);
-        curl_setopt($curl, CURLOPT_HTTPHEADER, [
-            'Content-Type: application/json',
-            'Content-Length: ' . strlen($json),
-        ]);
+        curl_setopt($curl, CURLOPT_HTTPHEADER, $this->buildRequestHeaders($json, $bearerToken));
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         // Keep the register responsive: fail fast if the fiscal endpoint is slow/down.
         curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 5);

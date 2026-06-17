@@ -2066,8 +2066,8 @@ class Sales extends Secure_Controller
             $data['pra_invoice_number'] = $fiscalData['pra_invoice_number'];
             $data['fbr_invoice_number'] = $fiscalData['fbr_invoice_number'];
 
-            $praConfigured = env('fiscal.pra.url', '') !== '';
-            $fbrConfigured = env('fiscal.fbr.url', '') !== '';
+            $praConfigured = env('fiscal.pra.url', '') !== '' && env('fiscal.pra.token', '') !== '';
+            $fbrConfigured = env('fiscal.fbr.url', '') !== '' && env('fiscal.fbr.token', '') !== '';
             if (($praConfigured && $fiscalData['pra_invoice_number'] === '')
                 || ($fbrConfigured && $fiscalData['fbr_invoice_number'] === '')) {
                 $data['fiscal_warning'] = lang('Sales.fiscal_data_failed');

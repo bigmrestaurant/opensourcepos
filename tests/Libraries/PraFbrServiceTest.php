@@ -49,4 +49,18 @@ class PraFbrServiceTest extends CIUnitTestCase
         $this->assertEqualsWithDelta($expectedTotal, $payload['TotalBillAmount'], 0.01);
         $this->assertEqualsWithDelta(3200.00, $payload['TotalBillAmount'], 0.01);
     }
+
+    public function testBuildRequestHeadersIncludesBearerToken(): void
+    {
+        $service = new PraFbrService();
+        $method = new ReflectionMethod(PraFbrService::class, 'buildRequestHeaders');
+        $method->setAccessible(true);
+
+        $json = '{"POSID":"128963"}';
+        $headers = $method->invoke($service, $json, 'secret-api-token');
+
+        $this->assertContains('Content-Type: application/json', $headers);
+        $this->assertContains('Content-Length: ' . strlen($json), $headers);
+        $this->assertContains('Authorization: Bearer secret-api-token', $headers);
+    }
 }
