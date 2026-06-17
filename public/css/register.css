@@ -90,6 +90,20 @@
     border-top: 1px solid #000;
 }
 
+#sale_totals tr:first-child th,
+#sale_totals tr:first-child td {
+    padding-top: 10px;
+}
+
+#sale_totals tr:last-child th {
+    padding-bottom: 8px;
+}
+
+#payment_totals tr:first-child th,
+#payment_totals tr:first-child td {
+    padding-top: 10px;
+}
+
 input#amount_tendered:disabled {
     display: none;
 }
