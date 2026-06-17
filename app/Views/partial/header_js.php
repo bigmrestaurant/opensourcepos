@@ -32,15 +32,15 @@
         }
     });
 
+    var csrfHash = "<?= csrf_hash() ?>";
+
     var csrf_token = function() {
-        return "<?= csrf_hash() ?>";
+        return csrfHash;
     };
 
     var csrf_form_base = function() {
         return {
-            <?= esc(config('Security')->tokenName, 'js') ?>: function() {
-                return csrf_token()
-            }
+            <?= esc(config('Security')->tokenName, 'js') ?>: csrf_token()
         }
     };
 
@@ -64,6 +64,13 @@
     };
 
     $(document).ajaxComplete(setup_csrf_token);
+    $(document).ajaxSuccess(function(event, xhr) {
+        var refreshedToken = xhr.getResponseHeader('<?= esc(config('Security')->headerName, 'js') ?>');
+        if (refreshedToken) {
+            csrfHash = refreshedToken;
+            setup_csrf_token();
+        }
+    });
     $(document).ready(function() {
         $("#logout").click(function(event) {
             event.preventDefault();

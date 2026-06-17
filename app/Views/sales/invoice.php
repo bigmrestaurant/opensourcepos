@@ -29,6 +29,10 @@ if (isset($error_message)) {
 }
 ?>
 
+<?php if (!empty($fiscal_warning)) { ?>
+    <div class="alert alert-dismissible alert-warning"><?= esc($fiscal_warning) ?></div>
+<?php } ?>
+
 <?php if (!empty($customer_email)): ?>
     <script type="text/javascript">
         $(document).ready(function() {

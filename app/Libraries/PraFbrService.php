@@ -86,11 +86,13 @@ class PraFbrService
         $payments = $saleData['payments'] ?? [];
         $isCash = $this->paymentIncludesCash($payments);
         $taxRate = $isCash ? 16 : 5;
-        $billTotal = (float) ($saleData['total'] ?? 0);
+        $serviceCharge = (float) ($saleData['service_charge'] ?? 0);
+        $billDiscount = (float) ($saleData['bill_discount'] ?? 0);
 
         // Accumulate the bill-level tax from the same per-item rule used below
         // so the line items always reconcile with TotalTaxCharged in the payload.
         $totalTax = 0.0;
+        $itemsTotal = 0.0;
         $items = [];
         foreach ($saleData['cart'] as $foodItem) {
             $lineSubtotal = ((float) $foodItem['price'] * (float) $foodItem['quantity']);
@@ -100,6 +102,8 @@ class PraFbrService
 
             $taxCharged = $lineSubtotal * ($taxRate / 100);
             $totalTax += $taxCharged;
+            $lineTotal = $lineSubtotal + $taxCharged;
+            $itemsTotal += $lineTotal;
             $digits = preg_replace('/[^0-9]/', '', (string) ($foodItem['item_number'] ?? ''));
             $items[] = [
                 'ItemCode'     => $foodItem['item_number'] ?? '',
@@ -109,21 +113,25 @@ class PraFbrService
                 'TaxRate'      => $taxRate,
                 'SaleValue'    => $foodItem['price'],
                 'TaxCharged'   => $taxCharged,
-                'TotalAmount'  => $lineSubtotal + $taxCharged,
+                'TotalAmount'  => $lineTotal,
                 'InvoiceType'  => 1,
             ];
         }
+
+        // Bill-level service charge and discount are not line items; fold them into the
+        // fiscal total so TotalBillAmount matches the POS sale total.
+        $totalBillAmount = $itemsTotal + $serviceCharge - $billDiscount;
 
         return [
             'InvoiceNumber'   => '',
             'POSID'           => $posId,
             'USIN'            => $usin,
             'DateTime'        => date('Y-m-d\TH:i:s'),
-            'TotalBillAmount' => $billTotal,
+            'TotalBillAmount' => $totalBillAmount,
             'TotalQuantity'   => count($saleData['cart']),
             'TotalSaleValue'  => $saleData['subtotal'] ?? 0,
             'TotalTaxCharged' => $totalTax,
-            'Discount'        => 0,
+            'Discount'        => $billDiscount,
             'PaymentMode'     => $isCash ? 1 : 2,
             'InvoiceType'     => 1,
             'Items'           => $items,

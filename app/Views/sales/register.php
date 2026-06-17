@@ -796,11 +796,22 @@ helper('url');
             });
         });
 
+        function syncBigmFieldsToCompleteForm() {
+            var $form = $('#buttons_form');
+            $form.find('input.bigm-complete-field').remove();
+            $form.append(
+                $('<input>', { type: 'hidden', name: 'walkin_name', class: 'bigm-complete-field', value: $('#walkin_name').val() || '' }),
+                $('<input>', { type: 'hidden', name: 'customer_phone', class: 'bigm-complete-field', value: $('#customer_phone').val() || '' }),
+                $('<input>', { type: 'hidden', name: 'customer_cnic', class: 'bigm-complete-field', value: $('#customer_cnic').val() || '' })
+            );
+        }
+
         function completeSale() {
-            $.post("<?= esc(site_url("$controller_name/setBigmFields")) ?>", getBigmFieldsPayload()).always(function() {
-                $('#buttons_form').attr('action', "<?= "$controller_name/complete" ?>");
-                $('#buttons_form').submit();
-            });
+            // Send walk-in fields on the complete POST itself. A separate AJAX call
+            // here can rotate the CSRF token and cause the follow-up submit to fail.
+            syncBigmFieldsToCompleteForm();
+            $('#buttons_form').attr('action', "<?= esc(site_url("$controller_name/complete")) ?>");
+            $('#buttons_form').submit();
         }
 
         $('#finish_sale_button').click(function(e) {
@@ -854,7 +865,8 @@ helper('url');
 
         $('#finish_sale_button').keypress(function(event) {
             if (event.which == 13) {
-                $('#finish_sale_form').submit();
+                event.preventDefault();
+                completeSale();
             }
         });
 

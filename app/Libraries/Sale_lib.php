@@ -1717,8 +1717,9 @@ class Sale_lib
 
         if (!$this->config['tax_included']) {
             $tax_lib = new Tax_lib();
+            $cart = $this->get_cart();
 
-            foreach ($tax_lib->get_taxes($this->get_cart())[0] as $tax) {
+            foreach ($tax_lib->get_taxes($cart)[0] as $tax) {
                 $total = bcadd($total, $tax['sale_tax_amount']);
             }
         }
@@ -1805,6 +1806,66 @@ class Sale_lib
         $service_charge = $this->session->get('bigm_service_charge');
 
         return ($service_charge === null || $service_charge === '') ? '0' : (string) $service_charge;
+    }
+
+    /**
+     * Largest safe bill discount after service charge is applied (cash vs card).
+     */
+    public function get_max_bill_discount(): string
+    {
+        if (empty($this->get_cart())) {
+            return '0';
+        }
+
+        $standardTotal = $this->get_total(false);
+        $cardTotal = $this->get_card_total();
+
+        if (bccomp($standardTotal, $cardTotal) <= 0) {
+            return bccomp($standardTotal, '0') < 0 ? '0' : $standardTotal;
+        }
+
+        return bccomp($cardTotal, '0') < 0 ? '0' : $cardTotal;
+    }
+
+    public function cap_bill_discount(string $requested): string
+    {
+        if (bccomp($requested, '0') < 0) {
+            return '0';
+        }
+
+        $maxDiscount = $this->get_max_bill_discount();
+
+        return bccomp($requested, $maxDiscount) > 0 ? $maxDiscount : $requested;
+    }
+
+    /**
+     * Largest service charge allowed (capped at the after-tax food bill).
+     */
+    public function get_max_service_charge(): string
+    {
+        if (empty($this->get_cart())) {
+            return '0';
+        }
+
+        $cashMax = $this->get_total_before_adjustments();
+        $cardMax = $this->get_card_total_before_adjustments();
+
+        if (bccomp($cashMax, $cardMax) >= 0) {
+            return $cashMax;
+        }
+
+        return $cardMax;
+    }
+
+    public function cap_service_charge(string $requested): string
+    {
+        if (bccomp($requested, '0') < 0) {
+            return '0';
+        }
+
+        $maxCharge = $this->get_max_service_charge();
+
+        return bccomp($requested, $maxCharge) > 0 ? $maxCharge : $requested;
     }
 
     public function clear_bill_adjustments(): void

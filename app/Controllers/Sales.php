@@ -349,31 +349,29 @@ class Sales extends Secure_Controller
     {
         $data = [];
 
-        $bill_discount = parse_decimals($this->request->getPost('bill_discount'));
-        $service_charge = parse_decimals($this->request->getPost('service_charge'));
+        $requestedDiscount = (string) parse_decimals($this->request->getPost('bill_discount'));
+        $requestedCharge = (string) parse_decimals($this->request->getPost('service_charge'));
+        $hadPayments = count($this->sale_lib->get_payments()) > 0;
 
-        $bill_discount = $bill_discount < 0 ? 0 : $bill_discount;
-        $service_charge = $service_charge < 0 ? 0 : $service_charge;
-
-        $this->sale_lib->set_service_charge((string) $service_charge);
-
-        // Cap the discount at the after-tax bill total (including service charge)
-        // so it can never push the total negative. Card payments are taxed at a
-        // lower rate, so use the smaller of the standard and card totals to make
-        // sure the discount is safe regardless of the payment method chosen.
         $this->sale_lib->set_bill_discount('0');
-        $standard_total = (float) $this->sale_lib->get_total(false);
-        $card_total = (float) $this->sale_lib->get_card_total();
-        $max_discount = min($standard_total, $card_total);
-        $max_discount = $max_discount < 0 ? 0 : $max_discount;
-        if ($bill_discount > $max_discount) {
-            $bill_discount = $max_discount;
-            $data['warning'] = lang('Sales.bill_discount_capped');
+        $serviceCharge = $this->sale_lib->cap_service_charge($requestedCharge);
+        if (bccomp($serviceCharge, $requestedCharge) !== 0) {
+            $data['warning'] = lang('Sales.service_charge_capped');
         }
-        $this->sale_lib->set_bill_discount((string) $bill_discount);
+        $this->sale_lib->set_service_charge($serviceCharge);
 
-        // Totals changed, so any existing payments must be re-entered.
-        $this->sale_lib->empty_payments();
+        $billDiscount = $this->sale_lib->cap_bill_discount($requestedDiscount);
+        if (bccomp($billDiscount, $requestedDiscount) !== 0) {
+            $discountWarning = lang('Sales.bill_discount_capped');
+            $data['warning'] = isset($data['warning']) ? $data['warning'] . ' ' . $discountWarning : $discountWarning;
+        }
+        $this->sale_lib->set_bill_discount($billDiscount);
+
+        if ($hadPayments) {
+            $this->sale_lib->empty_payments();
+            $paymentsWarning = lang('Sales.payments_cleared_after_adjustment');
+            $data['warning'] = isset($data['warning']) ? $data['warning'] . ' ' . $paymentsWarning : $paymentsWarning;
+        }
 
         return $this->_reload($data);
     }
@@ -769,9 +767,8 @@ class Sales extends Secure_Controller
         // Returns 'subtotal', 'total', 'cash_total', 'payment_total', 'amount_due', 'cash_amount_due', 'payments_cover_total'
         $totals = $this->sale_lib->get_totals($tax_details[0]);
         $data['subtotal'] = $totals['subtotal'];
+        $this->applyBillAdjustmentTotals($data, $totals);
         $data['total'] = $totals['total'];
-        $data['service_charge'] = $totals['service_charge'];
-        $data['bill_discount'] = $totals['bill_discount'];
         $data['payments_total'] = $totals['payment_total'];
         $data['payments_cover_total'] = $totals['payments_cover_total'];
         $data['cash_rounding'] = $this->session->get('cash_rounding');
@@ -844,22 +841,36 @@ class Sales extends Secure_Controller
                 }
                 $invoice_view = $invoice_type;
 
-                // Save the data to the sales table
-                $data['sale_id_num'] = $this->sale->save_value($sale_id, $data['sale_status'], $data['cart'], $customer_id, $employee_id, $data['comments'], $invoice_number, $work_order_number, $quote_number, $sale_type, $data['payments'], $data['dinner_table'], $tax_details);
+                $data['sale_id_num'] = $this->saveSaleValueSafe(
+                    $sale_id,
+                    $data['sale_status'],
+                    $data['cart'],
+                    $customer_id,
+                    $employee_id,
+                    $data['comments'],
+                    $invoice_number,
+                    $work_order_number,
+                    $quote_number,
+                    $sale_type,
+                    $data['payments'],
+                    $data['dinner_table'],
+                    $tax_details,
+                    $data
+                );
                 $data['sale_id'] = 'BIGM-' . $data['sale_id_num'];
 
                 // Resort and filter cart lines for printing
                 $data['cart'] = $this->sale_lib->sort_and_filter_cart($data['cart']);
 
                 if ($data['sale_id_num'] == NEW_ENTRY) {
-                    $data['error_message'] = lang('Sales.transaction_failed');
+                    $data['error_message'] = $data['error_message'] ?? lang('Sales.transaction_failed');
                     return $this->_reload($data);
-                } else {
-                    $this->finalize_bigm_fiscal_data($data);
-                    $data['barcode'] = $this->barcode_lib->generate_receipt_barcode($data['sale_id']);
-                    $this->sale_lib->clear_all();
-                    return view('sales/' . $invoice_view, $data);
                 }
+
+                $this->finalize_bigm_fiscal_data($data);
+                $data['barcode'] = $this->barcode_lib->generate_receipt_barcode($data['sale_id']);
+                $this->sale_lib->clear_all();
+                return view('sales/' . $invoice_view, $data);
             }
         } elseif ($this->sale_lib->is_work_order_mode()) {
 
@@ -884,7 +895,28 @@ class Sales extends Secure_Controller
                 $data['sale_status'] = SUSPENDED;
                 $sale_type = SALE_TYPE_WORK_ORDER;
 
-                $data['sale_id_num'] = $this->sale->save_value($sale_id, $data['sale_status'], $data['cart'], $customer_id, $employee_id, $data['comments'], $invoice_number, $work_order_number, $quote_number, $sale_type, $data['payments'], $data['dinner_table'], $tax_details);
+                $data['sale_id_num'] = $this->saveSaleValueSafe(
+                    $sale_id,
+                    $data['sale_status'],
+                    $data['cart'],
+                    $customer_id,
+                    $employee_id,
+                    $data['comments'],
+                    $invoice_number,
+                    $work_order_number,
+                    $quote_number,
+                    $sale_type,
+                    $data['payments'],
+                    $data['dinner_table'],
+                    $tax_details,
+                    $data
+                );
+
+                if ($data['sale_id_num'] == NEW_ENTRY) {
+                    $data['error_message'] = $data['error_message'] ?? lang('Sales.transaction_failed');
+                    return $this->_reload($data);
+                }
+
                 $this->sale_lib->set_suspended_id($data['sale_id_num']);
 
                 $data['cart'] = $this->sale_lib->sort_and_filter_cart($data['cart']);
@@ -912,7 +944,28 @@ class Sales extends Secure_Controller
                 $data['sale_status'] = SUSPENDED;
                 $sale_type = SALE_TYPE_QUOTE;
 
-                $data['sale_id_num'] = $this->sale->save_value($sale_id, $data['sale_status'], $data['cart'], $customer_id, $employee_id, $data['comments'], $invoice_number, $work_order_number, $quote_number, $sale_type, $data['payments'], $data['dinner_table'], $tax_details);
+                $data['sale_id_num'] = $this->saveSaleValueSafe(
+                    $sale_id,
+                    $data['sale_status'],
+                    $data['cart'],
+                    $customer_id,
+                    $employee_id,
+                    $data['comments'],
+                    $invoice_number,
+                    $work_order_number,
+                    $quote_number,
+                    $sale_type,
+                    $data['payments'],
+                    $data['dinner_table'],
+                    $tax_details,
+                    $data
+                );
+
+                if ($data['sale_id_num'] == NEW_ENTRY) {
+                    $data['error_message'] = $data['error_message'] ?? lang('Sales.transaction_failed');
+                    return $this->_reload($data);
+                }
+
                 $this->sale_lib->set_suspended_id($data['sale_id_num']);
 
                 $data['cart'] = $this->sale_lib->sort_and_filter_cart($data['cart']);
@@ -930,29 +983,44 @@ class Sales extends Secure_Controller
                 $sale_type = SALE_TYPE_POS;
             }
 
-            $data['sale_id_num'] = $this->sale->save_value($sale_id, $data['sale_status'], $data['cart'], $customer_id, $employee_id, $data['comments'], $invoice_number, $work_order_number, $quote_number, $sale_type, $data['payments'], $data['dinner_table'], $tax_details);
+            $data['sale_id_num'] = $this->saveSaleValueSafe(
+                $sale_id,
+                $data['sale_status'],
+                $data['cart'],
+                $customer_id,
+                $employee_id,
+                $data['comments'],
+                $invoice_number,
+                $work_order_number,
+                $quote_number,
+                $sale_type,
+                $data['payments'],
+                $data['dinner_table'],
+                $tax_details,
+                $data
+            );
+
+            if ($data['sale_id_num'] == NEW_ENTRY) {
+                $data['error_message'] = $data['error_message'] ?? lang('Sales.transaction_failed');
+                return $this->_reload($data);
+            }
 
             $data['sale_id'] = 'BIGM-' . $data['sale_id_num'];
 
             $data['cart'] = $this->sale_lib->sort_and_filter_cart($data['cart']);
 
-            if ($data['sale_id_num'] == NEW_ENTRY) {
-                $data['error_message'] = lang('Sales.transaction_failed');
-                return $this->_reload($data);
-            } else {
-                $this->finalize_bigm_fiscal_data($data);
-                $data['barcode'] = $this->barcode_lib->generate_receipt_barcode($data['sale_id']);
+            $this->finalize_bigm_fiscal_data($data);
+            $data['barcode'] = $this->barcode_lib->generate_receipt_barcode($data['sale_id']);
 
-                // Validate receipt template to prevent path traversal
-                $receipt_template = $this->config['receipt_template'] ?? '';
-                if (!Sale_lib::isValidReceiptTemplate($receipt_template)) {
-                    $receipt_template = 'receipt_bigm';
-                }
-                $data['receipt_template_view'] = $receipt_template;
-
-                $this->sale_lib->clear_all();
-                return view('sales/receipt', $data);
+            // Validate receipt template to prevent path traversal
+            $receipt_template = $this->config['receipt_template'] ?? '';
+            if (!Sale_lib::isValidReceiptTemplate($receipt_template)) {
+                $receipt_template = 'receipt_bigm';
             }
+            $data['receipt_template_view'] = $receipt_template;
+
+            $this->sale_lib->clear_all();
+            return view('sales/receipt', $data);
         }
     }
 
@@ -1140,8 +1208,7 @@ class Sales extends Secure_Controller
         $totals = $this->sale_lib->get_totals($tax_details[0]);
         $this->session->set('cash_adjustment_amount', $totals['cash_adjustment_amount']);
         $data['subtotal'] = $totals['subtotal'];
-        $data['service_charge'] = $totals['service_charge'];
-        $data['bill_discount'] = $totals['bill_discount'];
+        $this->applyBillAdjustmentTotals($data, $totals);
         $data['payments_total'] = $totals['payment_total'];
         $data['payments_cover_total'] = $totals['payments_cover_total'];
         $data['cash_mode'] = $this->session->get('cash_mode');    // TODO: Duplicated code.
@@ -1260,11 +1327,7 @@ class Sales extends Secure_Controller
         $data['item_count'] = $totals['item_count'];
         $data['total_units'] = $totals['total_units'];
         $data['subtotal'] = $totals['subtotal'];
-        $data['total_before_adjustments'] = $totals['total_before_adjustments']
-            ?? bcsub(
-                bcadd((string) ($totals['total'] ?? '0'), (string) ($totals['bill_discount'] ?? '0')),
-                (string) ($totals['service_charge'] ?? '0')
-            );
+        $data['total_before_adjustments'] = $this->resolveTotalBeforeAdjustments($totals);
         $data['total'] = $totals['total'];
         $data['payments_total'] = $totals['payment_total'];
         $data['payments_cover_total'] = $totals['payments_cover_total'];
@@ -1667,8 +1730,23 @@ class Sales extends Secure_Controller
         $data = [];
         $sales_taxes = [[], []];
 
-        if ($this->sale->save_value($sale_id, $sale_status, $cart, $customer_id, $employee_id, $comment, $invoice_number, $work_order_number, $quote_number, $sale_type, $payments, $dinner_table, $sales_taxes) == '-1') {
-            $data['error'] = lang('Sales.unsuccessfully_suspended_sale');
+        if ($this->saveSaleValueSafe(
+            $sale_id,
+            $sale_status,
+            $cart,
+            $customer_id,
+            $employee_id,
+            $comment,
+            $invoice_number,
+            $work_order_number,
+            $quote_number,
+            $sale_type,
+            $payments,
+            $dinner_table,
+            $sales_taxes,
+            $data
+        ) == NEW_ENTRY) {
+            $data['error'] = $data['error'] ?? lang('Sales.unsuccessfully_suspended_sale');
         } else {
             $data['success'] = lang('Sales.successfully_suspended_sale');
         }
@@ -1889,9 +1967,7 @@ class Sales extends Secure_Controller
         if ($cardOnly) {
             $taxDetails = $this->sale_lib->apply_card_tax_details($taxDetails, $data['cart']);
             $data['taxes'] = $taxDetails[0];
-            $data['total_before_adjustments'] = method_exists($this->sale_lib, 'get_card_total_before_adjustments')
-                ? $this->sale_lib->get_card_total_before_adjustments()
-                : ($data['total_before_adjustments'] ?? $data['total']);
+            $data['total_before_adjustments'] = $this->sale_lib->get_card_total_before_adjustments();
             $data['total'] = $this->sale_lib->get_card_total();
             $data['amount_due'] = bcsub($data['total'], (string) ($data['payments_total'] ?? 0), totals_decimals());
             $data['amount_change'] = bcmul($data['amount_due'], '-1', totals_decimals());
@@ -1930,10 +2006,7 @@ class Sales extends Secure_Controller
             }
         }
 
-        $data['bigm_cash_total']      = (string) ($data['total_before_adjustments']
-            ?? (method_exists($this->sale_lib, 'get_total_before_adjustments')
-                ? $this->sale_lib->get_total_before_adjustments()
-                : ($data['total'] ?? '0')));
+        $data['bigm_cash_total']      = (string) ($data['total_before_adjustments'] ?? $this->sale_lib->get_total_before_adjustments());
         $data['bigm_cash_tax_amount'] = $cashTaxAmount;
         $data['bigm_cash_tax_label']  = $cashTaxLabel;
         $data['bigm_cash_amount_due'] = bcsub($cashTotal, $paymentsTotal, totals_decimals());
@@ -1947,9 +2020,7 @@ class Sales extends Secure_Controller
             }
         }
 
-        $data['bigm_card_total']         = method_exists($this->sale_lib, 'get_card_total_before_adjustments')
-            ? $this->sale_lib->get_card_total_before_adjustments()
-            : (string) ($data['total_before_adjustments'] ?? $data['total'] ?? '0');
+        $data['bigm_card_total']         = $this->sale_lib->get_card_total_before_adjustments();
         $data['bigm_card_tax_amount']    = $cardTaxAmount;
         $data['bigm_card_tax_label']     = $cardTaxLabel;
         $data['bigm_card_amount_due']    = bcsub((string) $this->sale_lib->get_card_total(), $paymentsTotal, totals_decimals());
@@ -1982,16 +2053,101 @@ class Sales extends Secure_Controller
     /**
      * @param array<string, mixed> $data
      */
-    private function finalize_bigm_fiscal_data(array &$data): void
+    private function finalize_bigm_fiscal_data(array &$data): bool
     {
-        $praFbrService = new PraFbrService();
-        $fiscalData = $praFbrService->requestInvoiceNumbers($data);
-        $this->sale->save_bigm_fiscal_numbers(
-            (int) $data['sale_id_num'],
-            $fiscalData['pra_invoice_number'],
-            $fiscalData['fbr_invoice_number']
-        );
-        $data['pra_invoice_number'] = $fiscalData['pra_invoice_number'];
-        $data['fbr_invoice_number'] = $fiscalData['fbr_invoice_number'];
+        try {
+            $praFbrService = new PraFbrService();
+            $fiscalData = $praFbrService->requestInvoiceNumbers($data);
+            $this->sale->save_bigm_fiscal_numbers(
+                (int) $data['sale_id_num'],
+                $fiscalData['pra_invoice_number'],
+                $fiscalData['fbr_invoice_number']
+            );
+            $data['pra_invoice_number'] = $fiscalData['pra_invoice_number'];
+            $data['fbr_invoice_number'] = $fiscalData['fbr_invoice_number'];
+
+            $praConfigured = env('fiscal.pra.url', '') !== '';
+            $fbrConfigured = env('fiscal.fbr.url', '') !== '';
+            if (($praConfigured && $fiscalData['pra_invoice_number'] === '')
+                || ($fbrConfigured && $fiscalData['fbr_invoice_number'] === '')) {
+                $data['fiscal_warning'] = lang('Sales.fiscal_data_failed');
+
+                return false;
+            }
+
+            return true;
+        } catch (\Throwable $e) {
+            log_message('error', 'Fiscal data save failed for sale ' . ($data['sale_id_num'] ?? '') . ': ' . $e->getMessage());
+            $data['fiscal_warning'] = lang('Sales.fiscal_data_failed');
+
+            return false;
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $totals
+     */
+    private function resolveTotalBeforeAdjustments(array $totals): string
+    {
+        return $totals['total_before_adjustments']
+            ?? bcsub(
+                bcadd((string) ($totals['total'] ?? '0'), (string) ($totals['bill_discount'] ?? '0')),
+                (string) ($totals['service_charge'] ?? '0')
+            );
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     * @param array<string, mixed> $totals
+     */
+    private function applyBillAdjustmentTotals(array &$data, array $totals): void
+    {
+        $data['total_before_adjustments'] = $this->resolveTotalBeforeAdjustments($totals);
+        $data['service_charge'] = $totals['service_charge'] ?? $this->sale_lib->get_service_charge();
+        $data['bill_discount'] = $totals['bill_discount'] ?? $this->sale_lib->get_bill_discount();
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     * @param array<int, mixed> $taxDetails
+     */
+    private function saveSaleValueSafe(
+        int $saleId,
+        int $saleStatus,
+        array $cart,
+        int $customerId,
+        int $employeeId,
+        string $comments,
+        ?string $invoiceNumber,
+        ?string $workOrderNumber,
+        ?string $quoteNumber,
+        int $saleType,
+        ?array $payments,
+        ?int $dinnerTableId,
+        ?array &$taxDetails,
+        array &$data
+    ): int {
+        try {
+            return $this->sale->save_value(
+                $saleId,
+                $saleStatus,
+                $cart,
+                $customerId,
+                $employeeId,
+                $comments,
+                $invoiceNumber,
+                $workOrderNumber,
+                $quoteNumber,
+                $saleType,
+                $payments,
+                $dinnerTableId,
+                $taxDetails
+            );
+        } catch (\Throwable $e) {
+            log_message('error', 'Sale save failed: ' . $e->getMessage());
+            $data['error'] = lang('Sales.transaction_failed');
+
+            return NEW_ENTRY;
+        }
     }
 }
