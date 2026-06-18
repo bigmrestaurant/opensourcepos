@@ -2068,9 +2068,10 @@ class Sales extends Secure_Controller
 
             $praConfigured = env('fiscal.pra.url', '') !== '' && env('fiscal.pra.token', '') !== '';
             $fbrConfigured = env('fiscal.fbr.url', '') !== '' && env('fiscal.fbr.token', '') !== '';
-            if (($praConfigured && $fiscalData['pra_invoice_number'] === '')
-                || ($fbrConfigured && $fiscalData['fbr_invoice_number'] === '')) {
-                $data['fiscal_warning'] = lang('Sales.fiscal_data_failed');
+            $praFailed = $praConfigured && $fiscalData['pra_invoice_number'] === '';
+            $fbrFailed = $fbrConfigured && $fiscalData['fbr_invoice_number'] === '';
+            if ($praFailed || $fbrFailed) {
+                $data['fiscal_warning'] = $this->build_fiscal_warning_message($praFailed, $fbrFailed);
 
                 return false;
             }
@@ -2082,6 +2083,19 @@ class Sales extends Secure_Controller
 
             return false;
         }
+    }
+
+    private function build_fiscal_warning_message(bool $praFailed, bool $fbrFailed): string
+    {
+        if ($praFailed && $fbrFailed) {
+            return lang('Sales.fiscal_data_failed');
+        }
+
+        if ($praFailed) {
+            return lang('Sales.fiscal_pra_failed');
+        }
+
+        return lang('Sales.fiscal_fbr_failed');
     }
 
     /**
