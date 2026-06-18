@@ -3,7 +3,6 @@
  * BigM Restaurant receipt template with PRA/FBR fiscal sections.
  *
  * @var string $transaction_time
- * @var int|null $transaction_timestamp
  * @var string $sale_id
  * @var string $employee
  * @var array $cart
@@ -68,7 +67,7 @@
         <div id="company_address"><?= nl2br(esc($config['address'])) ?></div>
         <div id="company_phone"><?= esc($config['phone']) ?></div>
         <div id="sale_receipt"><?= lang('Sales.receipt') ?></div>
-        <div id="sale_time"><?= esc(date('d/m/Y H:i:s', $transaction_timestamp ?? time())) ?></div>
+        <div id="sale_time"><?= esc($transaction_time) ?></div>
     </div>
 
     <div id="receipt_general_info">

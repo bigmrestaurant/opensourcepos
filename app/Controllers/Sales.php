@@ -721,7 +721,6 @@ class Sales extends Secure_Controller
 
         $data['include_hsn'] = (bool)$this->config['include_hsn'];
         $__time = time();
-        $data['transaction_timestamp'] = $__time;
         $data['transaction_time'] = to_datetime($__time);
         $data['transaction_date'] = to_date($__time);
         $data['show_stock_locations'] = $this->stock_location->show_locations('sales');
@@ -1197,8 +1196,7 @@ class Sales extends Secure_Controller
         $tax_details = $this->tax_lib->get_taxes($data['cart'], $sale_id);
         $data['taxes'] = $this->sale->get_sales_taxes($sale_id);
         $data['discount'] = $this->sale_lib->get_discount();
-        $data['transaction_timestamp'] = strtotime($sale_info['sale_time']);
-        $data['transaction_time'] = to_datetime($data['transaction_timestamp']);
+        $data['transaction_time'] = to_datetime(strtotime($sale_info['sale_time']));
         $data['transaction_date'] = to_date(strtotime($sale_info['sale_time']));
         $data['show_stock_locations'] = $this->stock_location->show_locations('sales');
 
