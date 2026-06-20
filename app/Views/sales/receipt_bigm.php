@@ -23,44 +23,129 @@
 ?>
 
 <style type="text/css">
-    /* BigM thermal print layout (FIT FP-1100 Raster). Top gap lives on the header
-       so the logo is offset from the tear edge; sides keep item columns separated. */
+    /* BigM thermal receipt (FIT FP-1100 / 80mm). Keep content inside printable area. */
     #receipt_wrapper {
         box-sizing: border-box;
-        padding-left: 10px;
-        padding-right: 10px;
+        width: 100%;
+        max-width: 80mm;
+        margin: 0 auto;
+        padding-left: 3mm;
+        padding-right: 3mm;
     }
+
     #receipt_wrapper #receipt_header {
-        padding-top: 16px;
+        padding-top: 0;
+        text-align: center;
     }
+
+    #receipt_wrapper #company_phone {
+        margin-bottom: 8px;
+    }
+
+    /* Override global receipt.css (150%) so the header fits 80mm paper. */
+    #receipt_wrapper #company_name {
+        font-size: 1.15em;
+        font-weight: bold;
+        line-height: 1.2;
+    }
+
     #receipt_wrapper .company_logo img {
         display: block;
         margin: 0 auto;
-        max-width: 140px;
-        max-height: 70px;
+        max-width: 120px;
+        max-height: 56px;
         width: auto;
         height: auto;
     }
+
+    #receipt_wrapper #receipt_general_info {
+        text-align: left;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+
+    #receipt_wrapper #receipt_items {
+        width: 100%;
+        table-layout: fixed;
+        border-collapse: collapse;
+        margin-top: 10px;
+        margin-bottom: 10px;
+    }
+
     #receipt_wrapper #receipt_items th,
     #receipt_wrapper #receipt_items td {
-        padding: 2px 6px;
+        padding: 1px 2px;
+        vertical-align: top;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
     }
-    /* Extra separation right where Price meets Quantity. */
-    #receipt_wrapper #receipt_items th:nth-child(3),
-    #receipt_wrapper #receipt_items td:nth-child(3) {
-        padding-right: 10px;
-    }
-    #receipt_wrapper #receipt_items th:nth-child(4),
-    #receipt_wrapper #receipt_items td:nth-child(4) {
-        padding-left: 10px;
-    }
+
     @media print {
-        #receipt_wrapper {
-            padding-left: 8px;
-            padding-right: 8px;
+        @page {
+            size: 80mm auto;
+            margin: 0;
         }
+
+        html,
+        body {
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        #receipt_wrapper {
+            max-width: 76mm;
+            padding-left: 2.5mm;
+            padding-right: 2.5mm;
+            margin: 0 auto;
+        }
+
         #receipt_wrapper #receipt_header {
-            padding-top: 22px;
+            padding-top: 0;
+            margin-top: 0;
+        }
+
+        #receipt_wrapper #company_phone {
+            margin-bottom: 4px;
+        }
+
+        #receipt_wrapper #company_name {
+            font-size: 11px;
+            line-height: 1.2;
+        }
+
+        #receipt_wrapper #receipt_items {
+            margin-top: 6px;
+            margin-bottom: 6px;
+        }
+
+        #receipt_wrapper #receipt_items th,
+        #receipt_wrapper #receipt_items td {
+            padding: 1px 1px;
+            font-size: 10px;
+            line-height: 1.2;
+        }
+
+        #receipt_wrapper .company_logo img {
+            max-width: 95px;
+            max-height: 48px;
+        }
+
+        #receipt_wrapper #barcode {
+            margin-top: 6px;
+        }
+
+        #receipt_wrapper #barcode > div {
+            padding: 2px !important;
+        }
+
+        #receipt_wrapper #qrcode-pra,
+        #receipt_wrapper #qrcode-fbr {
+            width: 80px !important;
+            height: 80px !important;
+        }
+
+        #receipt_wrapper #barcode img {
+            height: 36px !important;
         }
     }
 </style>
@@ -97,13 +182,13 @@
         <div id="employee"><?= lang('Employees.employee') . esc(": $employee") ?></div>
     </div>
 
-    <table id="receipt_items" style="table-layout:fixed; width:100%; word-break:break-word;">
+    <table id="receipt_items">
         <tr>
-            <th style="width:22%; text-align:left;"><?= lang('Sales.item_number') ?></th>
-            <th style="width:30%; text-align:left;"><?= lang('Items.item') ?></th>
-            <th style="width:18%; text-align:right; white-space:nowrap;"><?= lang('Sales.price') ?></th>
-            <th style="width:12%; text-align:center;"><?= lang('Sales.quantity') ?></th>
-            <th style="width:18%; text-align:right; white-space:nowrap;"><?= lang('Sales.total') ?></th>
+            <th style="width:18%; text-align:left;">#</th>
+            <th style="width:25%; text-align:left;"><?= lang('Items.item') ?></th>
+            <th style="width:17%; text-align:right;"><?= lang('Sales.price') ?></th>
+            <th style="width:12%; text-align:center;">Qty</th>
+            <th style="width:23%; text-align:right;"><?= lang('Sales.total') ?></th>
         </tr>
         <?php
         foreach ($cart as $item) {
@@ -114,11 +199,11 @@
                 }
         ?>
                 <tr>
-                    <td style="word-break:break-word;"><?= esc($item['item_number'] ?? '') ?></td>
-                    <td style="word-break:break-word;"><?= esc($item['name']) ?></td>
-                    <td style="text-align:right; white-space:nowrap;"><?= to_currency($item['price']) ?></td>
+                    <td><?= esc($item['item_number'] ?? '') ?></td>
+                    <td><?= esc($item['name']) ?></td>
+                    <td style="text-align:right;"><?= to_currency($item['price']) ?></td>
                     <td style="text-align:center;"><?= to_quantity_decimals($item['quantity']) ?></td>
-                    <td style="text-align:right; white-space:nowrap;"><?= to_currency($lineTotal) ?></td>
+                    <td style="text-align:right;"><?= to_currency($lineTotal) ?></td>
                 </tr>
         <?php
             }
@@ -172,13 +257,13 @@
     <div id="barcode" style="display:table; width:100%; table-layout:fixed; margin:10px auto 0; page-break-inside:avoid;">
         <div style="display:table-cell; width:50%; text-align:center; vertical-align:top; padding:6px; page-break-inside:avoid;">
             <img src="<?= base_url('images/pra-pos.jpeg') ?>" alt="PRA Logo" style="display:block; height:45px; width:auto; max-width:100%; margin:0 auto 6px;">
-            <div id="qrcode-pra" style="width:100px; height:100px; max-width:100%; margin:0 auto;"
+            <div id="qrcode-pra" style="width:80px; height:80px; max-width:100%; margin:0 auto;"
                  data-qr-text="<?= esc('PRA Invoice# ' . ($pra_invoice_number ?? ''), 'attr') ?>"></div>
             <div style="font-size:9pt; margin-top:6px; word-break:break-word;"><?= 'PRA Invoice# ' . esc($pra_invoice_number ?? '') ?></div>
         </div>
         <div style="display:table-cell; width:50%; text-align:center; vertical-align:top; padding:6px; page-break-inside:avoid;">
             <img src="<?= base_url('images/fbr-pos.png') ?>" alt="FBR Logo" style="display:block; height:45px; width:auto; max-width:100%; margin:0 auto 6px;">
-            <div id="qrcode-fbr" style="width:100px; height:100px; max-width:100%; margin:0 auto;"
+            <div id="qrcode-fbr" style="width:80px; height:80px; max-width:100%; margin:0 auto;"
                  data-qr-text="<?= esc('FBR Invoice# ' . ($fbr_invoice_number ?? ''), 'attr') ?>"></div>
             <div style="font-size:9pt; margin-top:6px; word-break:break-word;"><?= 'FBR Invoice# ' . esc($fbr_invoice_number ?? '') ?></div>
         </div>
@@ -190,9 +275,10 @@
     $(document).ready(function() {
         var praEl = document.getElementById('qrcode-pra');
         var fbrEl = document.getElementById('qrcode-fbr');
+        var qrSize = 80;
         if (typeof QRCode !== 'undefined' && praEl && fbrEl) {
-            new QRCode(praEl, { text: praEl.getAttribute('data-qr-text'), width: 100, height: 100 });
-            new QRCode(fbrEl, { text: fbrEl.getAttribute('data-qr-text'), width: 100, height: 100 });
+            new QRCode(praEl, { text: praEl.getAttribute('data-qr-text'), width: qrSize, height: qrSize });
+            new QRCode(fbrEl, { text: fbrEl.getAttribute('data-qr-text'), width: qrSize, height: qrSize });
         }
     });
 </script>
