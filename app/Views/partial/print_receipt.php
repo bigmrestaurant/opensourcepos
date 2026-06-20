@@ -56,15 +56,10 @@
     }
 
     <?php if ($print_after_sale) { ?>
-        $(window).on('load', (function() {
-            // Executes when complete page is fully loaded, including all frames, objects and images
+        $(window).on('load', function() {
+            // Auto-open print dialog; stay on receipt so user can re-print or use SALES REGISTER.
             printdoc();
-
-            // After a delay, return to sales view
-            setTimeout(function() {
-                window.location.href = "<?= site_url('sales') ?>";
-            }, <?= $config['print_delay_autoreturn'] * 1000 ?>);
-        }));
+        });
 
     <?php } ?>
 </script>

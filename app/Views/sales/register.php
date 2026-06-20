@@ -630,16 +630,6 @@ helper('url');
             $.post("<?= site_url('sales/removeCustomer'); ?>", redirect);
         });
 
-        $(".delete_item_button").click(function() {
-            const item_id = $(this).data('item-id');
-            $.post("<?= site_url('sales/deleteItem/'); ?>" + item_id, redirect);
-        });
-
-        $(".delete_payment_button").click(function() {
-            const item_id = $(this).data('payment-id');
-            $.post("<?= site_url('sales/deletePayment/'); ?>" + item_id, redirect);
-        });
-
         $("input[name='item_number']").change(function() {
             var item_id = $(this).parents('tr').find("input[name='item_id']").val();
             var item_number = $(this).val();

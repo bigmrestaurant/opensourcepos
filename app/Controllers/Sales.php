@@ -544,13 +544,18 @@ class Sales extends Secure_Controller
      * @return ResponseInterface
      * @noinspection PhpUnused
      */
-    public function getDeletePayment(string $payment_id): ResponseInterface|string
+    public function getDeletePayment(string $payment_id): RedirectResponse|ResponseInterface|string
     {
         helper('url');
 
-        $this->sale_lib->delete_payment(base64url_decode($payment_id));
+        $decoded_payment_id = base64url_decode($payment_id);
+        $payments = $this->sale_lib->get_payments();
 
-        return $this->_reload();
+        if (isset($payments[$decoded_payment_id])) {
+            $this->sale_lib->delete_payment($decoded_payment_id);
+        }
+
+        return redirect()->to('sales')->setStatusCode(303);
     }
 
     /**
@@ -686,13 +691,16 @@ class Sales extends Secure_Controller
      * @throws ReflectionException
      * @noinspection PhpUnused
      */
-    public function getDeleteItem(int $item_id): ResponseInterface|string
+    public function getDeleteItem(int $item_id): RedirectResponse|ResponseInterface|string
     {
-        $this->sale_lib->delete_item($item_id);
+        $cart = $this->sale_lib->get_cart();
 
-        $this->sale_lib->empty_payments();
+        if (isset($cart[$item_id])) {
+            $this->sale_lib->delete_item($item_id);
+            $this->sale_lib->empty_payments();
+        }
 
-        return $this->_reload();
+        return redirect()->to('sales')->setStatusCode(303);
     }
 
     /**
@@ -701,16 +709,18 @@ class Sales extends Secure_Controller
      * @return ResponseInterface
      * @noinspection PhpUnused
      */
-    public function getRemoveCustomer(): ResponseInterface|string
+    public function getRemoveCustomer(): RedirectResponse|ResponseInterface|string
     {
-        $this->sale_lib->clear_giftcard_remainder();
-        $this->sale_lib->clear_rewards_remainder();
-        $this->sale_lib->delete_payment(lang('Sales.rewards'));
-        $this->sale_lib->clear_invoice_number();
-        $this->sale_lib->clear_quote_number();
-        $this->sale_lib->remove_customer();
+        if ($this->sale_lib->get_customer() != -1) {
+            $this->sale_lib->clear_giftcard_remainder();
+            $this->sale_lib->clear_rewards_remainder();
+            $this->sale_lib->delete_payment(lang('Sales.rewards'));
+            $this->sale_lib->clear_invoice_number();
+            $this->sale_lib->clear_quote_number();
+            $this->sale_lib->remove_customer();
+        }
 
-        return $this->_reload();
+        return redirect()->to('sales')->setStatusCode(303);
     }
 
     /**

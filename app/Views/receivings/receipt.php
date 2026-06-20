@@ -24,7 +24,7 @@ if (isset($error_message)) {
     exit;
 }
 
-echo view('partial/print_receipt', ['print_after_sale', $print_after_sale, 'selected_printer' => 'receipt_printer']) ?>
+echo view('partial/print_receipt', ['print_after_sale' => $print_after_sale, 'selected_printer' => 'receipt_printer']) ?>
 
 <div class="print_hide" id="control_buttons" style="text-align: right;">
     <a href="javascript:printdoc();">

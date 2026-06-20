@@ -45,23 +45,8 @@
                 </div>
             </div>
 
-            <div class="form-group form-group-sm">
-                <?= form_label(lang('Config.print_delay_autoreturn'), 'print_delay_autoreturn', ['class' => 'control-label col-xs-2 required']) ?>
-                <div class="col-xs-2">
-                    <div class="input-group">
-                        <?= form_input([
-                            'type'  => 'number',
-                            'min'   => '0',
-                            'max'   => '30',
-                            'name'  => 'print_delay_autoreturn',
-                            'id'    => 'print_delay_autoreturn',
-                            'class' => 'form-control input-sm required',
-                            'value' => $config['print_delay_autoreturn']
-                        ]) ?>
-                        <span class="input-group-addon input-sm">s</span>
-                    </div>
-                </div>
-            </div>
+            <?php // Autoreturn after print is no longer used; receipts stay on screen until the cashier navigates away. ?>
+            <?= form_hidden('print_delay_autoreturn', $config['print_delay_autoreturn']) ?>
 
             <div class="form-group form-group-sm">
                 <?= form_label(lang('Config.email_receipt_check_behaviour'), 'email_receipt_check_behaviour', ['class' => 'control-label col-xs-2']) ?>
@@ -402,10 +387,6 @@
                 receipt_font_size: {
                     required: true,
                     number: true
-                },
-                print_delay_autoreturn: {
-                    required: true,
-                    number: true
                 }
             },
 
@@ -429,10 +410,6 @@
                 receipt_font_size: {
                     required: "<?= lang('Config.receipt_font_size_required') ?>",
                     number: "<?= lang('Config.receipt_font_size_number') ?>"
-                },
-                print_delay_autoreturn: {
-                    required: "<?= lang('Config.print_delay_autoreturn_required') ?>",
-                    number: "<?= lang('Config.print_delay_autoreturn_number') ?>"
                 }
             }
         }));
