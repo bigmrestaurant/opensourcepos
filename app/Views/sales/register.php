@@ -65,6 +65,8 @@ if (isset($success)) {
 }
 
 helper('url');
+
+$walkin_only_register = ($config['receipt_template'] ?? '') === 'receipt_bigm';
 ?>
 
 <div id="register_wrapper">
@@ -299,6 +301,7 @@ helper('url');
 
 <div id="overall_sale" class="panel panel-default">
     <div class="panel-body">
+        <?php if (!$walkin_only_register || isset($customer)) { ?>
         <?= form_open("$controller_name/selectCustomer", ['id' => 'select_customer_form', 'class' => 'form-horizontal']) ?>
             <?php if (isset($customer)) { ?>
                 <table class="sales_table_100">
@@ -354,7 +357,7 @@ helper('url');
                     ['class' => 'btn btn-danger btn-sm', 'id' => 'remove_customer_button', 'title' => lang('Common.remove') . ' ' . lang('Customers.customer')]
                 )
                 ?>
-            <?php } else { ?>
+            <?php } elseif (!$walkin_only_register) { ?>
                 <div class="form-group" id="select_customer">
                     <label id="customer_label" for="customer" class="control-label" style="margin-bottom: 1em; margin-top: -1em;">
                         <?= lang(ucfirst($controller_name) . '.select_customer') . esc(" $customer_required") ?>
@@ -370,8 +373,9 @@ helper('url');
                 </div>
             <?php } ?>
         <?= form_close() ?>
+        <?php } ?>
 
-        <?php if (!isset($customer)) { ?>
+        <?php if ($walkin_only_register || !isset($customer)) { ?>
             <div id="bigm_sale_fields" class="panel panel-default" style="margin-top: 10px; margin-bottom: 10px;">
                 <div class="panel-heading" style="padding: 6px 10px; font-weight: bold;">
                     <span class="glyphicon glyphicon-user">&nbsp;</span>Walk-in Customer
@@ -714,7 +718,12 @@ helper('url');
             }
         };
 
-        $('#item, #customer').click(clear_fields).dblclick(function(event) {
+        $('#item').click(clear_fields).dblclick(function(event) {
+            $(this).autocomplete('search');
+        });
+
+        <?php if (!$walkin_only_register) { ?>
+        $('#customer').click(clear_fields).dblclick(function(event) {
             $(this).autocomplete('search');
         });
 
@@ -739,6 +748,7 @@ helper('url');
                 return false;
             }
         });
+        <?php } ?>
 
         $('.giftcard-input').autocomplete({
             source: "<?= site_url('giftcards/suggest') ?>",
@@ -882,10 +892,10 @@ helper('url');
             })
 
             if (response.success) {
-                if (resource.match(/customers$/)) {
+                if (resource.match(/customers$/) && $('#customer').length) {
                     $('#customer').val(response.id);
                     $('#select_customer_form').submit();
-                } else {
+                } else if (!resource.match(/customers$/)) {
                     var $stock_location = $("select[name='stock_location']").val();
                     $('#item_location').val($stock_location);
                     $('#item').val(response.id);
@@ -998,8 +1008,13 @@ helper('url');
                     $("#item").select();
                     break;
                 case shortcutCodes.customers:
+                    <?php if ($walkin_only_register) { ?>
+                    $("#walkin_name").focus();
+                    $("#walkin_name").select();
+                    <?php } else { ?>
                     $("#customer").focus();
                     $("#customer").select();
+                    <?php } ?>
                     break;
                 case shortcutCodes.suspend:
                     $("#suspend_sale_button").click();
