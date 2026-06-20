@@ -191,6 +191,7 @@ return [
     "service_charge_capped"            => "Service charge was capped at the bill total.",
     "bill_discount"                    => "Discount",
     "bill_discount_capped"             => "Discount was capped at the bill total.",
+    "bill_adjustments_locked_after_payment" => "Remove all payments before changing service charge or discount.",
     "payments_cleared_after_adjustment" => "Payments were cleared because the bill total changed. Please add payment again.",
     "fiscal_data_failed"               => "Sale completed, but PRA and FBR invoice numbers could not be retrieved.",
     "fiscal_pra_failed"                => "Sale completed, but PRA invoice number could not be retrieved.",

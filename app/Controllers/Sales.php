@@ -348,11 +348,14 @@ class Sales extends Secure_Controller
      */
     public function postSetBillAdjustments(): ResponseInterface|string
     {
+        if (count($this->sale_lib->get_payments()) > 0) {
+            return $this->_reload(['warning' => lang('Sales.bill_adjustments_locked_after_payment')]);
+        }
+
         $data = [];
 
         $requestedDiscount = (string) parse_decimals($this->request->getPost('bill_discount'));
         $requestedCharge = (string) parse_decimals($this->request->getPost('service_charge'));
-        $hadPayments = count($this->sale_lib->get_payments()) > 0;
 
         $this->sale_lib->set_bill_discount('0');
         $serviceCharge = $this->sale_lib->cap_service_charge($requestedCharge);
@@ -367,12 +370,6 @@ class Sales extends Secure_Controller
             $data['warning'] = isset($data['warning']) ? $data['warning'] . ' ' . $discountWarning : $discountWarning;
         }
         $this->sale_lib->set_bill_discount($billDiscount);
-
-        if ($hadPayments) {
-            $this->sale_lib->empty_payments();
-            $paymentsWarning = lang('Sales.payments_cleared_after_adjustment');
-            $data['warning'] = isset($data['warning']) ? $data['warning'] . ' ' . $paymentsWarning : $paymentsWarning;
-        }
 
         return $this->_reload($data);
     }

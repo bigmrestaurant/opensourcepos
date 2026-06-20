@@ -417,17 +417,28 @@ helper('url');
         </table>
 
         <?php if (count($cart) > 0) { // Only show this part if there are Items already in the register ?>
+            <?php
+            $bill_adjustment_input_attrs = [
+                'form'    => 'bill_adjustments_form',
+                'class'   => 'form-control input-sm bigm-bill-adjustment',
+                'style'   => 'text-align: right;',
+                'onClick' => 'this.select();',
+            ];
+            if (count($payments) > 0) {
+                $bill_adjustment_input_attrs['disabled'] = 'disabled';
+            }
+            ?>
             <table class="sales_table_100" id="payment_totals">
                 <tr>
                     <th style="width: 55%;"><?= lang(ucfirst($controller_name) . '.service_charge') ?></th>
                     <th style="width: 45%; text-align: right;">
-                        <?= form_input(['name' => 'service_charge', 'id' => 'service_charge', 'form' => 'bill_adjustments_form', 'class' => 'form-control input-sm bigm-bill-adjustment', 'value' => to_currency_no_money($service_charge ?? 0), 'style' => 'text-align: right;', 'onClick' => 'this.select();']) ?>
+                        <?= form_input(array_merge($bill_adjustment_input_attrs, ['name' => 'service_charge', 'id' => 'service_charge', 'value' => to_currency_no_money($service_charge ?? 0)])) ?>
                     </th>
                 </tr>
                 <tr>
                     <th style="width: 55%;"><?= lang(ucfirst($controller_name) . '.bill_discount') ?></th>
                     <th style="width: 45%; text-align: right;">
-                        <?= form_input(['name' => 'bill_discount', 'id' => 'bill_discount', 'form' => 'bill_adjustments_form', 'class' => 'form-control input-sm bigm-bill-adjustment', 'value' => to_currency_no_money($bill_discount ?? 0), 'style' => 'text-align: right;', 'onClick' => 'this.select();']) ?>
+                        <?= form_input(array_merge($bill_adjustment_input_attrs, ['name' => 'bill_discount', 'id' => 'bill_discount', 'value' => to_currency_no_money($bill_discount ?? 0)])) ?>
                     </th>
                 </tr>
                 <tr>
