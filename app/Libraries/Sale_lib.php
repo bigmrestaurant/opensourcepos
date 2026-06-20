@@ -968,6 +968,57 @@ class Sale_lib
     }
 
     /**
+     * Payment type for the register dropdown; uses session or last tender on the sale.
+     */
+    public function get_selected_payment_type(): string
+    {
+        $paymentType = $this->get_payment_type();
+        if ($paymentType !== null && $paymentType !== '') {
+            return $paymentType;
+        }
+
+        return $this->resolve_payment_type_from_payments($this->get_payments());
+    }
+
+    /**
+     * Reconcile session payment type with payments still on the sale (e.g. after delete).
+     */
+    public function sync_payment_type_from_payments(): void
+    {
+        $payments = $this->get_payments();
+        if ($payments === []) {
+            $this->session->remove('payment_type');
+
+            return;
+        }
+
+        $this->set_payment_type($this->resolve_payment_type_from_payments($payments));
+    }
+
+    /**
+     * @param array<string, array<string, mixed>> $payments
+     */
+    private function resolve_payment_type_from_payments(array $payments): string
+    {
+        if ($payments === []) {
+            return lang('Sales.cash');
+        }
+
+        $paymentIds = array_keys($payments);
+        $lastPaymentId = $paymentIds[count($paymentIds) - 1];
+
+        if ($lastPaymentId === lang('Sales.cash_adjustment') && count($paymentIds) > 1) {
+            $lastPaymentId = $paymentIds[count($paymentIds) - 2];
+        }
+
+        if (str_contains($lastPaymentId, ':')) {
+            return explode(':', $lastPaymentId, 2)[0];
+        }
+
+        return $lastPaymentId;
+    }
+
+    /**
      * @return void
      */
     public function clear_sale_location(): void
