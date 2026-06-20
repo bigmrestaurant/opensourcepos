@@ -21,6 +21,7 @@ use App\Models\Stock_location;
 use App\Models\Tokens\Token_invoice_count;
 use App\Models\Tokens\Token_customer;
 use App\Models\Tokens\Token_invoice_sequence;
+use CodeIgniter\HTTP\RedirectResponse;
 use CodeIgniter\HTTP\ResponseInterface;
 use Config\Services;
 use Config\OSPOS;
@@ -440,7 +441,7 @@ class Sales extends Secure_Controller
      * @return ResponseInterface|string
      * @noinspection PhpUnused
      */
-    public function postAddPayment(): ResponseInterface|string
+    public function postAddPayment(): RedirectResponse|ResponseInterface|string
     {
         $data = [];
         $giftcard = model(Giftcard::class);
@@ -525,7 +526,15 @@ class Sales extends Secure_Controller
             }
         }
 
-        return $this->_reload($data);
+        if (!empty($data['error'])) {
+            return $this->_reload($data);
+        }
+
+        if (!empty($data['warning'])) {
+            $this->session->setFlashdata('register_warning', $data['warning']);
+        }
+
+        return redirect()->to('sales')->setStatusCode(303);
     }
 
     /**
@@ -711,7 +720,7 @@ class Sales extends Secure_Controller
      * @throws ReflectionException
      * @noinspection PhpUnused
      */
-    public function postComplete(): string    // TODO: this function is huge.  Probably should be refactored.
+    public function postComplete(): RedirectResponse|string    // TODO: this function is huge.  Probably should be refactored.
     {
         $sale_id = $this->sale_lib->get_sale_id();
         $data = [];
@@ -838,7 +847,6 @@ class Sales extends Secure_Controller
                 if (!Sale_lib::isValidInvoiceType($invoice_type)) {
                     $invoice_type = 'invoice';
                 }
-                $invoice_view = $invoice_type;
 
                 $data['sale_id_num'] = $this->saveSaleValueSafe(
                     $sale_id,
@@ -867,9 +875,8 @@ class Sales extends Secure_Controller
                 }
 
                 $this->finalize_bigm_fiscal_data($data);
-                $data['barcode'] = $this->barcode_lib->generate_receipt_barcode($data['sale_id']);
-                $this->sale_lib->clear_all();
-                return view('sales/' . $invoice_view, $data);
+
+                return $this->redirectToInvoice((int) $data['sale_id_num'], $data);
             }
         } elseif ($this->sale_lib->is_work_order_mode()) {
 
@@ -1009,17 +1016,8 @@ class Sales extends Secure_Controller
             $data['cart'] = $this->sale_lib->sort_and_filter_cart($data['cart']);
 
             $this->finalize_bigm_fiscal_data($data);
-            $data['barcode'] = $this->barcode_lib->generate_receipt_barcode($data['sale_id']);
 
-            // Validate receipt template to prevent path traversal
-            $receipt_template = $this->config['receipt_template'] ?? '';
-            if (!Sale_lib::isValidReceiptTemplate($receipt_template)) {
-                $receipt_template = 'receipt_bigm';
-            }
-            $data['receipt_template_view'] = $receipt_template;
-
-            $this->sale_lib->clear_all();
-            return view('sales/receipt', $data);
+            return $this->redirectToReceipt((int) $data['sale_id_num'], $data);
         }
     }
 
@@ -1293,6 +1291,10 @@ class Sales extends Secure_Controller
      */
     private function _reload(array $data = []): ResponseInterface|string    // TODO: Hungarian notation
     {
+        if (!isset($data['warning']) && ($flashWarning = $this->session->getFlashdata('register_warning'))) {
+            $data['warning'] = $flashWarning;
+        }
+
         $sale_id = $this->session->get('sale_id');    // TODO: This variable is never used
 
         if ($sale_id == '') {
@@ -1425,6 +1427,8 @@ class Sales extends Secure_Controller
     public function getReceipt(int $sale_id): string
     {
         $data = $this->_load_sale_data($sale_id);
+        $data['cart'] = $this->sale_lib->sort_and_filter_cart($data['cart']);
+        $this->applyReceiptFlashData($data);
         $this->sale_lib->clear_all();
 
         return view('sales/receipt', $data);
@@ -1440,6 +1444,8 @@ class Sales extends Secure_Controller
     public function getInvoice(int $sale_id): string
     {
         $data = $this->_load_sale_data($sale_id);
+        $data['cart'] = $this->sale_lib->sort_and_filter_cart($data['cart']);
+        $this->applyReceiptFlashData($data);
         $this->sale_lib->clear_all();
 
         return view('sales/' . $data['invoice_view'], $data);
@@ -2094,6 +2100,65 @@ class Sales extends Secure_Controller
         }
 
         return lang('Sales.fiscal_fbr_failed');
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    private function redirectToReceipt(int $saleId, array $data): RedirectResponse
+    {
+        $this->stashReceiptFlashData($data);
+        $this->sale_lib->clear_all();
+
+        return redirect()->to("sales/receipt/$saleId")->setStatusCode(303);
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    private function redirectToInvoice(int $saleId, array $data): RedirectResponse
+    {
+        $this->stashReceiptFlashData($data);
+        $this->sale_lib->clear_all();
+
+        return redirect()->to("sales/invoice/$saleId")->setStatusCode(303);
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    private function stashReceiptFlashData(array $data): void
+    {
+        if (!empty($data['fiscal_warning'])) {
+            $this->session->setFlashdata('fiscal_warning', $data['fiscal_warning']);
+        }
+
+        // Read from Sale_lib before clear_all(); respects config (always/never/last).
+        if ($this->sale_lib->is_print_after_sale()) {
+            $this->session->setFlashdata('print_after_sale', '1');
+        }
+
+        if ($this->sale_lib->is_email_receipt()) {
+            $this->session->setFlashdata('email_receipt', '1');
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    private function applyReceiptFlashData(array &$data): void
+    {
+        if ($fiscalWarning = $this->session->getFlashdata('fiscal_warning')) {
+            $data['fiscal_warning'] = $fiscalWarning;
+        }
+
+        if ($this->session->getFlashdata('print_after_sale')) {
+            $data['print_after_sale'] = true;
+        }
+
+        if ($this->session->getFlashdata('email_receipt')) {
+            $data['email_receipt'] = true;
+        }
     }
 
     /**

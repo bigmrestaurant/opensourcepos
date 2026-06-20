@@ -23,13 +23,23 @@
 ?>
 
 <style type="text/css">
-    /* BigM thermal print layout (FIT FP-1100 Raster). Give the body breathing room
-       on the left/right and force a real gap between the item columns so Price and
-       Quantity never collide on narrow paper. */
+    /* BigM thermal print layout (FIT FP-1100 Raster). Top gap lives on the header
+       so the logo is offset from the tear edge; sides keep item columns separated. */
     #receipt_wrapper {
         box-sizing: border-box;
         padding-left: 10px;
         padding-right: 10px;
+    }
+    #receipt_wrapper #receipt_header {
+        padding-top: 16px;
+    }
+    #receipt_wrapper .company_logo img {
+        display: block;
+        margin: 0 auto;
+        max-width: 140px;
+        max-height: 70px;
+        width: auto;
+        height: auto;
     }
     #receipt_wrapper #receipt_items th,
     #receipt_wrapper #receipt_items td {
@@ -49,14 +59,17 @@
             padding-left: 8px;
             padding-right: 8px;
         }
+        #receipt_wrapper #receipt_header {
+            padding-top: 22px;
+        }
     }
 </style>
 
 <div id="receipt_wrapper" style="font-size: <?= $config['receipt_font_size'] ?>px;">
     <div id="receipt_header">
         <?php if ($config['company_logo'] != '') { ?>
-            <div id="company_name" style="text-align:center;">
-                <img id="image" src="<?= base_url('uploads/' . esc($config['company_logo'], 'url')) ?>" alt="company_logo" style="max-width:140px; max-height:70px; width:auto; height:auto;">
+            <div class="company_logo" style="text-align:center;">
+                <img src="<?= base_url('uploads/' . esc($config['company_logo'], 'url')) ?>" alt="company_logo">
             </div>
         <?php } ?>
 
