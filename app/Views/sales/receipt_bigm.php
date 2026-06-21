@@ -66,17 +66,13 @@ $receiptFontSize = max(1, (int) ($config['receipt_font_size'] ?? 12));
         white-space: nowrap;
     }
     @media print {
-        /* Explicitly set paper size so the browser lays out at 80mm — not A4.
-           Without this, content is laid out for a wide page and the thermal
-           printer clips the right edge when it cuts at 80mm.
-           margin-right: 5mm accounts for the FP-1100 hardware margin.
-           margin-bottom: 8mm creates the visible bottom gap. */
+        /* No size: 80mm here — the OS paper size (set to 80mm roll in the printer
+           driver) already controls page width. Setting size:80mm in CSS activates
+           Bootstrap's xs-breakpoint at 302px which triggers .row { margin:0 -15px }
+           and pushes content 15px off BOTH edges, causing the left/right clipping.
+           margin:0 lets the printer driver own the hardware margin. */
         @page {
-            size: 80mm auto;
-            margin-top: 0;
-            margin-right: 5mm;
-            margin-bottom: 8mm;
-            margin-left: 2mm;
+            margin: 0;
         }
 
         html,
@@ -85,23 +81,25 @@ $receiptFontSize = max(1, (int) ($config['receipt_font_size'] ?? 12));
             padding: 0 !important;
         }
 
-        /* Scope layout reset to the receipt page row only (not all printable pages). */
-        .container:has(#receipt_wrapper),
-        .row:has(#receipt_wrapper) {
+        /* Bootstrap .container has padding:0 15px and .row has margin:0 -15px.
+           These must both be zeroed for the full page width to be usable.
+           :has() is unreliable in print engines, so reset all containers/rows. */
+        .container,
+        .container-fluid,
+        .row {
             margin: 0 !important;
             padding: 0 !important;
             width: 100% !important;
             max-width: 100% !important;
         }
 
-        /* Padding is now minimal — @page margins handle the outer whitespace. */
         #receipt_wrapper {
             box-sizing: border-box;
             width: 100% !important;
             max-width: 100% !important;
-            padding-left: 6px !important;
-            padding-right: 4px !important;
-            padding-bottom: 0 !important;
+            padding-left: 15px !important;
+            padding-right: 22px !important;
+            padding-bottom: 20px !important;
         }
 
         #receipt_wrapper #receipt_header {
@@ -128,18 +126,19 @@ $receiptFontSize = max(1, (int) ($config['receipt_font_size'] ?? 12));
 
         #receipt_wrapper #receipt_items th:nth-child(1),
         #receipt_wrapper #receipt_items td:nth-child(1) {
-            width: 33% !important;
+            width: 30% !important;
         }
 
         #receipt_wrapper #receipt_items th:nth-child(2),
         #receipt_wrapper #receipt_items td:nth-child(2) {
-            width: 19% !important;
+            /* 23% gives ~61px at 265px content width — enough for "Rs 13,000.00" */
+            width: 23% !important;
             padding-right: 2px !important;
         }
 
         #receipt_wrapper #receipt_items th:nth-child(3),
         #receipt_wrapper #receipt_items td:nth-child(3) {
-            width: 11% !important;
+            width: 10% !important;
             padding-left: 2px !important;
         }
 
@@ -186,8 +185,8 @@ $receiptFontSize = max(1, (int) ($config['receipt_font_size'] ?? 12));
     <table id="receipt_items" style="table-layout:fixed; width:100%; word-break:break-word;">
         <thead>
         <tr>
-            <th style="width:33%; text-align:left;"><?= lang('Items.item') ?></th>
-            <th style="width:19%; text-align:right;"><?= lang('Sales.price') ?></th>
+            <th style="width:30%; text-align:left;"><?= lang('Items.item') ?></th>
+            <th style="width:22%; text-align:right;"><?= lang('Sales.price') ?></th>
             <th style="width:11%; text-align:center;">Qty</th>
             <th style="width:37%; text-align:right;"><?= lang('Sales.total') ?></th>
         </tr>
@@ -212,33 +211,33 @@ $receiptFontSize = max(1, (int) ($config['receipt_font_size'] ?? 12));
         }
         ?>
         <tr>
-            <td colspan="3" style="text-align:left; border-top:2px solid #000;"><?= lang('Sales.sub_total') ?></td>
+            <td colspan="3" style="text-align:right; border-top:2px solid #000;"><?= lang('Sales.sub_total') ?></td>
             <td style="text-align:right; border-top:2px solid #000;"><?= to_currency($subtotal) ?></td>
         </tr>
 
         <?php foreach ($taxes as $tax) { ?>
             <tr>
-                <td colspan="3" style="text-align:left;"><?= esc((float) ($tax['tax_rate'] ?? 0) . '% ' . ($tax['tax_group'] ?? 'GST')) ?></td>
+                <td colspan="3" style="text-align:right;"><?= esc((float) ($tax['tax_rate'] ?? 0) . '% ' . ($tax['tax_group'] ?? 'GST')) ?></td>
                 <td style="text-align:right;"><?= to_currency_tax($tax['sale_tax_amount'] ?? 0) ?></td>
             </tr>
         <?php } ?>
 
         <?php if ((float) ($service_charge ?? 0) != 0) { ?>
             <tr>
-                <td colspan="3" style="text-align:left;"><?= lang('Sales.service_charge') ?></td>
+                <td colspan="3" style="text-align:right;"><?= lang('Sales.service_charge') ?></td>
                 <td style="text-align:right;"><?= to_currency($service_charge) ?></td>
             </tr>
         <?php } ?>
 
         <?php if ((float) ($bill_discount ?? 0) != 0) { ?>
             <tr>
-                <td colspan="3" style="text-align:left;"><?= lang('Sales.bill_discount') ?></td>
+                <td colspan="3" style="text-align:right;"><?= lang('Sales.bill_discount') ?></td>
                 <td style="text-align:right;"><?= to_currency($bill_discount * -1) ?></td>
             </tr>
         <?php } ?>
 
         <tr>
-            <td colspan="3" style="text-align:left;"><?= lang('Sales.total') ?></td>
+            <td colspan="3" style="text-align:right;"><?= lang('Sales.total') ?></td>
             <td style="text-align:right;"><?= to_currency($total) ?></td>
         </tr>
 
@@ -246,7 +245,7 @@ $receiptFontSize = max(1, (int) ($config['receipt_font_size'] ?? 12));
             $splitpayment = explode(':', $payment['payment_type']);
         ?>
             <tr>
-                <td colspan="3" style="text-align:left;"><?= lang('Sales.payment') ?></td>
+                <td colspan="3" style="text-align:right;"><?= lang('Sales.payment') ?></td>
                 <td style="text-align:right;"><?= esc($splitpayment[0]) ?></td>
             </tr>
         <?php } ?>
