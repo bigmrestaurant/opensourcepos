@@ -30,6 +30,7 @@ $receiptFontSize = max(1, (int) ($config['receipt_font_size'] ?? 12));
         box-sizing: border-box;
         padding-left: 10px;
         padding-right: 10px;
+        padding-bottom: 10px;
     }
     #receipt_wrapper #receipt_header {
         padding-top: 0;
@@ -46,14 +47,23 @@ $receiptFontSize = max(1, (int) ($config['receipt_font_size'] ?? 12));
     #receipt_wrapper #receipt_items td {
         padding: 2px 6px;
     }
-    /* Extra separation right where Price meets Quantity. */
+    /* Extra separation right where Price meets Qty. */
     #receipt_wrapper #receipt_items th:nth-child(2),
     #receipt_wrapper #receipt_items td:nth-child(2) {
-        padding-right: 10px;
+        padding-right: 6px;
     }
     #receipt_wrapper #receipt_items th:nth-child(3),
     #receipt_wrapper #receipt_items td:nth-child(3) {
-        padding-left: 10px;
+        padding-left: 4px;
+    }
+    /* Keep numeric columns on one line (e.g. Qty 99, Rs 9,999.00). */
+    #receipt_wrapper #receipt_items th:nth-child(2),
+    #receipt_wrapper #receipt_items td:nth-child(2),
+    #receipt_wrapper #receipt_items th:nth-child(3),
+    #receipt_wrapper #receipt_items td:nth-child(3),
+    #receipt_wrapper #receipt_items th:nth-child(4),
+    #receipt_wrapper #receipt_items td:nth-child(4) {
+        white-space: nowrap;
     }
     @media print {
         @page {
@@ -80,7 +90,8 @@ $receiptFontSize = max(1, (int) ($config['receipt_font_size'] ?? 12));
             width: 100% !important;
             max-width: 100% !important;
             padding-left: 18px !important;
-            padding-right: 18px !important;
+            padding-right: 22px !important;
+            padding-bottom: 18px !important;
         }
 
         #receipt_wrapper #receipt_header {
@@ -107,25 +118,24 @@ $receiptFontSize = max(1, (int) ($config['receipt_font_size'] ?? 12));
 
         #receipt_wrapper #receipt_items th:nth-child(1),
         #receipt_wrapper #receipt_items td:nth-child(1) {
-            width: 42% !important;
+            width: 33% !important;
         }
 
         #receipt_wrapper #receipt_items th:nth-child(2),
         #receipt_wrapper #receipt_items td:nth-child(2) {
-            width: 20% !important;
-            padding-right: 4px !important;
+            width: 19% !important;
+            padding-right: 2px !important;
         }
 
         #receipt_wrapper #receipt_items th:nth-child(3),
         #receipt_wrapper #receipt_items td:nth-child(3) {
-            width: 14% !important;
-            padding-left: 4px !important;
-            white-space: nowrap;
+            width: 11% !important;
+            padding-left: 2px !important;
         }
 
         #receipt_wrapper #receipt_items th:nth-child(4),
         #receipt_wrapper #receipt_items td:nth-child(4) {
-            width: 24% !important;
+            width: 37% !important;
             padding-right: 0 !important;
         }
     }
@@ -166,10 +176,10 @@ $receiptFontSize = max(1, (int) ($config['receipt_font_size'] ?? 12));
     <table id="receipt_items" style="table-layout:fixed; width:100%; word-break:break-word;">
         <thead>
         <tr>
-            <th style="width:42%; text-align:left;"><?= lang('Items.item') ?></th>
-            <th style="width:20%; text-align:right; white-space:nowrap;"><?= lang('Sales.price') ?></th>
-            <th style="width:14%; text-align:center;"><?= lang('Sales.quantity') ?></th>
-            <th style="width:24%; text-align:right; white-space:nowrap;"><?= lang('Sales.total') ?></th>
+            <th style="width:33%; text-align:left;"><?= lang('Items.item') ?></th>
+            <th style="width:19%; text-align:right;"><?= lang('Sales.price') ?></th>
+            <th style="width:11%; text-align:center;">Qty</th>
+            <th style="width:37%; text-align:right;"><?= lang('Sales.total') ?></th>
         </tr>
         </thead>
         <tbody>
@@ -183,9 +193,9 @@ $receiptFontSize = max(1, (int) ($config['receipt_font_size'] ?? 12));
         ?>
                 <tr>
                     <td style="word-break:break-word;"><?= esc($item['name']) ?></td>
-                    <td style="text-align:right; white-space:nowrap;"><?= to_currency($item['price']) ?></td>
+                    <td style="text-align:right;"><?= to_currency($item['price']) ?></td>
                     <td style="text-align:center;"><?= to_quantity_decimals($item['quantity']) ?></td>
-                    <td style="text-align:right; white-space:nowrap;"><?= to_currency($lineTotal) ?></td>
+                    <td style="text-align:right;"><?= to_currency($lineTotal) ?></td>
                 </tr>
         <?php
             }
