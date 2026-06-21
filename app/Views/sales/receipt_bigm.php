@@ -20,6 +20,8 @@
  * @var string $pra_invoice_number
  * @var string $fbr_invoice_number
  */
+
+$receiptFontSize = max(1, (int) ($config['receipt_font_size'] ?? 12));
 ?>
 
 <style type="text/css">
@@ -45,32 +47,91 @@
         padding: 2px 6px;
     }
     /* Extra separation right where Price meets Quantity. */
-    #receipt_wrapper #receipt_items th:nth-child(3),
-    #receipt_wrapper #receipt_items td:nth-child(3) {
+    #receipt_wrapper #receipt_items th:nth-child(2),
+    #receipt_wrapper #receipt_items td:nth-child(2) {
         padding-right: 10px;
     }
-    #receipt_wrapper #receipt_items th:nth-child(4),
-    #receipt_wrapper #receipt_items td:nth-child(4) {
+    #receipt_wrapper #receipt_items th:nth-child(3),
+    #receipt_wrapper #receipt_items td:nth-child(3) {
         padding-left: 10px;
     }
     @media print {
+        @page {
+            margin: 0;
+        }
+
         html,
         body {
             margin: 0 !important;
             padding: 0 !important;
         }
-        #receipt_wrapper {
-            padding-left: 12px;
-            padding-right: 12px;
+
+        /* Scope layout reset to the receipt page row only (not all printable pages). */
+        .container:has(#receipt_wrapper),
+        .row:has(#receipt_wrapper) {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
         }
+
+        #receipt_wrapper {
+            box-sizing: border-box;
+            width: 100% !important;
+            max-width: 100% !important;
+            padding-left: 18px !important;
+            padding-right: 18px !important;
+        }
+
         #receipt_wrapper #receipt_header {
             padding-top: 0;
             margin-top: 0;
         }
+
+        #receipt_wrapper #receipt_general_info {
+            padding-left: 2px;
+            padding-right: 2px;
+        }
+
+        #receipt_wrapper #receipt_items {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin-left: 0;
+            margin-right: 0;
+        }
+
+        #receipt_wrapper #receipt_items th,
+        #receipt_wrapper #receipt_items td {
+            padding: 1px 2px !important;
+        }
+
+        #receipt_wrapper #receipt_items th:nth-child(1),
+        #receipt_wrapper #receipt_items td:nth-child(1) {
+            width: 42% !important;
+        }
+
+        #receipt_wrapper #receipt_items th:nth-child(2),
+        #receipt_wrapper #receipt_items td:nth-child(2) {
+            width: 20% !important;
+            padding-right: 4px !important;
+        }
+
+        #receipt_wrapper #receipt_items th:nth-child(3),
+        #receipt_wrapper #receipt_items td:nth-child(3) {
+            width: 14% !important;
+            padding-left: 4px !important;
+            white-space: nowrap;
+        }
+
+        #receipt_wrapper #receipt_items th:nth-child(4),
+        #receipt_wrapper #receipt_items td:nth-child(4) {
+            width: 24% !important;
+            padding-right: 0 !important;
+        }
     }
 </style>
 
-<div id="receipt_wrapper" style="font-size: <?= $config['receipt_font_size'] ?>px;">
+<div id="receipt_wrapper" style="font-size: <?= $receiptFontSize ?>px;">
     <div id="receipt_header">
         <?php if ($config['company_logo'] != '') { ?>
             <div class="company_logo" style="text-align:center;">
@@ -103,13 +164,15 @@
     </div>
 
     <table id="receipt_items" style="table-layout:fixed; width:100%; word-break:break-word;">
+        <thead>
         <tr>
-            <th style="width:22%; text-align:left;"><?= lang('Sales.item_number') ?></th>
-            <th style="width:30%; text-align:left;"><?= lang('Items.item') ?></th>
-            <th style="width:18%; text-align:right; white-space:nowrap;"><?= lang('Sales.price') ?></th>
-            <th style="width:12%; text-align:center;"><?= lang('Sales.quantity') ?></th>
-            <th style="width:18%; text-align:right; white-space:nowrap;"><?= lang('Sales.total') ?></th>
+            <th style="width:42%; text-align:left;"><?= lang('Items.item') ?></th>
+            <th style="width:20%; text-align:right; white-space:nowrap;"><?= lang('Sales.price') ?></th>
+            <th style="width:14%; text-align:center;"><?= lang('Sales.quantity') ?></th>
+            <th style="width:24%; text-align:right; white-space:nowrap;"><?= lang('Sales.total') ?></th>
         </tr>
+        </thead>
+        <tbody>
         <?php
         foreach ($cart as $item) {
             if ($item['print_option'] == PRINT_YES) {
@@ -119,7 +182,6 @@
                 }
         ?>
                 <tr>
-                    <td style="word-break:break-word;"><?= esc($item['item_number'] ?? '') ?></td>
                     <td style="word-break:break-word;"><?= esc($item['name']) ?></td>
                     <td style="text-align:right; white-space:nowrap;"><?= to_currency($item['price']) ?></td>
                     <td style="text-align:center;"><?= to_quantity_decimals($item['quantity']) ?></td>
@@ -130,33 +192,33 @@
         }
         ?>
         <tr>
-            <td colspan="4" style="text-align:right; border-top:2px solid #000;"><?= lang('Sales.sub_total') ?></td>
+            <td colspan="3" style="text-align:right; border-top:2px solid #000;"><?= lang('Sales.sub_total') ?></td>
             <td style="text-align:right; border-top:2px solid #000;"><?= to_currency($subtotal) ?></td>
         </tr>
 
         <?php foreach ($taxes as $tax) { ?>
             <tr>
-                <td colspan="4" style="text-align:right;"><?= esc((float) ($tax['tax_rate'] ?? 0) . '% ' . ($tax['tax_group'] ?? 'GST')) ?></td>
+                <td colspan="3" style="text-align:right;"><?= esc((float) ($tax['tax_rate'] ?? 0) . '% ' . ($tax['tax_group'] ?? 'GST')) ?></td>
                 <td style="text-align:right;"><?= to_currency_tax($tax['sale_tax_amount'] ?? 0) ?></td>
             </tr>
         <?php } ?>
 
         <?php if ((float) ($service_charge ?? 0) != 0) { ?>
             <tr>
-                <td colspan="4" style="text-align:right;"><?= lang('Sales.service_charge') ?></td>
+                <td colspan="3" style="text-align:right;"><?= lang('Sales.service_charge') ?></td>
                 <td style="text-align:right;"><?= to_currency($service_charge) ?></td>
             </tr>
         <?php } ?>
 
         <?php if ((float) ($bill_discount ?? 0) != 0) { ?>
             <tr>
-                <td colspan="4" style="text-align:right;"><?= lang('Sales.bill_discount') ?></td>
+                <td colspan="3" style="text-align:right;"><?= lang('Sales.bill_discount') ?></td>
                 <td style="text-align:right;"><?= to_currency($bill_discount * -1) ?></td>
             </tr>
         <?php } ?>
 
         <tr>
-            <td colspan="4" style="text-align:right;"><?= lang('Sales.total') ?></td>
+            <td colspan="3" style="text-align:right;"><?= lang('Sales.total') ?></td>
             <td style="text-align:right;"><?= to_currency($total) ?></td>
         </tr>
 
@@ -164,10 +226,11 @@
             $splitpayment = explode(':', $payment['payment_type']);
         ?>
             <tr>
-                <td colspan="4" style="text-align:right;"><?= lang('Sales.payment') ?></td>
+                <td colspan="3" style="text-align:right;"><?= lang('Sales.payment') ?></td>
                 <td style="text-align:right;"><?= esc($splitpayment[0]) ?></td>
             </tr>
         <?php } ?>
+        </tbody>
     </table>
 
     <div id="sale_return_policy">
