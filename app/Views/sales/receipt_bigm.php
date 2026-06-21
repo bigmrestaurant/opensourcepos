@@ -98,7 +98,7 @@ $receiptFontSize = max(1, (int) ($config['receipt_font_size'] ?? 12));
             width: 100% !important;
             max-width: 100% !important;
             padding-left: 15px !important;
-            padding-right: 22px !important;
+            padding-right: 40px !important;
             padding-bottom: 20px !important;
         }
 
@@ -131,8 +131,8 @@ $receiptFontSize = max(1, (int) ($config['receipt_font_size'] ?? 12));
 
         #receipt_wrapper #receipt_items th:nth-child(2),
         #receipt_wrapper #receipt_items td:nth-child(2) {
-            /* 23% gives ~61px at 265px content width — enough for "Rs 13,000.00" */
-            width: 23% !important;
+            /* 26% gives ~64px at 247px content width — enough for "Rs 1,300.00" */
+            width: 26% !important;
             padding-right: 2px !important;
         }
 
@@ -144,7 +144,8 @@ $receiptFontSize = max(1, (int) ($config['receipt_font_size'] ?? 12));
 
         #receipt_wrapper #receipt_items th:nth-child(4),
         #receipt_wrapper #receipt_items td:nth-child(4) {
-            width: 37% !important;
+            /* 34% gives ~84px — ample for "Rs 3,580.00" */
+            width: 34% !important;
             padding-right: 0 !important;
         }
     }
@@ -195,16 +196,12 @@ $receiptFontSize = max(1, (int) ($config['receipt_font_size'] ?? 12));
         <?php
         foreach ($cart as $item) {
             if ($item['print_option'] == PRINT_YES) {
-                $lineTotal = (float) $item['price'] * (float) $item['quantity'];
-                if (!empty($item['discount'])) {
-                    $lineTotal -= $lineTotal * ((float) $item['discount'] / 100);
-                }
         ?>
                 <tr>
                     <td style="word-break:break-word;"><?= esc($item['name']) ?></td>
                     <td style="text-align:right;"><?= to_currency($item['price']) ?></td>
                     <td style="text-align:center;"><?= to_quantity_decimals($item['quantity']) ?></td>
-                    <td style="text-align:right;"><?= to_currency($lineTotal) ?></td>
+                    <td style="text-align:right;"><?= to_currency($item['discounted_total']) ?></td>
                 </tr>
         <?php
             }
