@@ -66,7 +66,8 @@ $receiptFontSize = max(1, (int) ($config['receipt_font_size'] ?? 12));
         white-space: nowrap;
     }
     .receipt-bottom-spacer {
-        display: none;
+        height: 0;
+        overflow: hidden;
     }
     @media print {
         /* No size: 80mm here — the OS paper size (set to 80mm roll in the printer
@@ -152,8 +153,8 @@ $receiptFontSize = max(1, (int) ($config['receipt_font_size'] ?? 12));
         }
 
         .receipt-bottom-spacer {
-            display: block !important;
-            height: 30px;
+            height: 30px !important;
+            overflow: visible !important;
         }
     }
 </style>
