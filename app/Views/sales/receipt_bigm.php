@@ -66,8 +66,17 @@ $receiptFontSize = max(1, (int) ($config['receipt_font_size'] ?? 12));
         white-space: nowrap;
     }
     @media print {
+        /* Explicitly set paper size so the browser lays out at 80mm — not A4.
+           Without this, content is laid out for a wide page and the thermal
+           printer clips the right edge when it cuts at 80mm.
+           margin-right: 5mm accounts for the FP-1100 hardware margin.
+           margin-bottom: 8mm creates the visible bottom gap. */
         @page {
-            margin: 0;
+            size: 80mm auto;
+            margin-top: 0;
+            margin-right: 5mm;
+            margin-bottom: 8mm;
+            margin-left: 2mm;
         }
 
         html,
@@ -85,13 +94,14 @@ $receiptFontSize = max(1, (int) ($config['receipt_font_size'] ?? 12));
             max-width: 100% !important;
         }
 
+        /* Padding is now minimal — @page margins handle the outer whitespace. */
         #receipt_wrapper {
             box-sizing: border-box;
             width: 100% !important;
             max-width: 100% !important;
-            padding-left: 18px !important;
-            padding-right: 22px !important;
-            padding-bottom: 18px !important;
+            padding-left: 6px !important;
+            padding-right: 4px !important;
+            padding-bottom: 0 !important;
         }
 
         #receipt_wrapper #receipt_header {
@@ -100,8 +110,8 @@ $receiptFontSize = max(1, (int) ($config['receipt_font_size'] ?? 12));
         }
 
         #receipt_wrapper #receipt_general_info {
-            padding-left: 2px;
-            padding-right: 2px;
+            padding-left: 0;
+            padding-right: 0;
         }
 
         #receipt_wrapper #receipt_items {
@@ -202,33 +212,33 @@ $receiptFontSize = max(1, (int) ($config['receipt_font_size'] ?? 12));
         }
         ?>
         <tr>
-            <td colspan="3" style="text-align:right; border-top:2px solid #000;"><?= lang('Sales.sub_total') ?></td>
+            <td colspan="3" style="text-align:left; border-top:2px solid #000;"><?= lang('Sales.sub_total') ?></td>
             <td style="text-align:right; border-top:2px solid #000;"><?= to_currency($subtotal) ?></td>
         </tr>
 
         <?php foreach ($taxes as $tax) { ?>
             <tr>
-                <td colspan="3" style="text-align:right;"><?= esc((float) ($tax['tax_rate'] ?? 0) . '% ' . ($tax['tax_group'] ?? 'GST')) ?></td>
+                <td colspan="3" style="text-align:left;"><?= esc((float) ($tax['tax_rate'] ?? 0) . '% ' . ($tax['tax_group'] ?? 'GST')) ?></td>
                 <td style="text-align:right;"><?= to_currency_tax($tax['sale_tax_amount'] ?? 0) ?></td>
             </tr>
         <?php } ?>
 
         <?php if ((float) ($service_charge ?? 0) != 0) { ?>
             <tr>
-                <td colspan="3" style="text-align:right;"><?= lang('Sales.service_charge') ?></td>
+                <td colspan="3" style="text-align:left;"><?= lang('Sales.service_charge') ?></td>
                 <td style="text-align:right;"><?= to_currency($service_charge) ?></td>
             </tr>
         <?php } ?>
 
         <?php if ((float) ($bill_discount ?? 0) != 0) { ?>
             <tr>
-                <td colspan="3" style="text-align:right;"><?= lang('Sales.bill_discount') ?></td>
+                <td colspan="3" style="text-align:left;"><?= lang('Sales.bill_discount') ?></td>
                 <td style="text-align:right;"><?= to_currency($bill_discount * -1) ?></td>
             </tr>
         <?php } ?>
 
         <tr>
-            <td colspan="3" style="text-align:right;"><?= lang('Sales.total') ?></td>
+            <td colspan="3" style="text-align:left;"><?= lang('Sales.total') ?></td>
             <td style="text-align:right;"><?= to_currency($total) ?></td>
         </tr>
 
@@ -236,7 +246,7 @@ $receiptFontSize = max(1, (int) ($config['receipt_font_size'] ?? 12));
             $splitpayment = explode(':', $payment['payment_type']);
         ?>
             <tr>
-                <td colspan="3" style="text-align:right;"><?= lang('Sales.payment') ?></td>
+                <td colspan="3" style="text-align:left;"><?= lang('Sales.payment') ?></td>
                 <td style="text-align:right;"><?= esc($splitpayment[0]) ?></td>
             </tr>
         <?php } ?>
