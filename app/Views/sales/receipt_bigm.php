@@ -23,14 +23,15 @@
 ?>
 
 <style type="text/css">
-    /* BigM thermal receipt (FIT FP-1100 / 80mm). Keep content inside printable area. */
+    <?php $printFontSize = max(11, (int) ($config['receipt_font_size'] ?? 12)); ?>
+    /* BigM thermal receipt (FIT FP-1100 / 80mm). Balance readable size vs edge clipping. */
     #receipt_wrapper {
         box-sizing: border-box;
         width: 100%;
         max-width: 80mm;
         margin: 0 auto;
-        padding-left: 3mm;
-        padding-right: 3mm;
+        padding-left: 2mm;
+        padding-right: 2mm;
     }
 
     #receipt_wrapper #receipt_header {
@@ -44,22 +45,27 @@
 
     /* Override global receipt.css (150%) so the header fits 80mm paper. */
     #receipt_wrapper #company_name {
-        font-size: 1.15em;
+        font-size: 1.2em;
         font-weight: bold;
-        line-height: 1.2;
+        line-height: 1.25;
     }
 
     #receipt_wrapper .company_logo img {
         display: block;
         margin: 0 auto;
-        max-width: 120px;
-        max-height: 56px;
+        max-width: 130px;
+        max-height: 62px;
         width: auto;
         height: auto;
     }
 
+    #receipt_wrapper #receipt_general_info,
+    #receipt_wrapper #receipt_header,
+    #receipt_wrapper #sale_return_policy {
+        text-align: center;
+    }
+
     #receipt_wrapper #receipt_general_info {
-        text-align: left;
         word-wrap: break-word;
         overflow-wrap: break-word;
     }
@@ -74,10 +80,18 @@
 
     #receipt_wrapper #receipt_items th,
     #receipt_wrapper #receipt_items td {
-        padding: 1px 2px;
+        padding: 2px 1px;
         vertical-align: top;
         word-wrap: break-word;
         overflow-wrap: break-word;
+    }
+
+    #receipt_wrapper #qrcode-pra canvas,
+    #receipt_wrapper #qrcode-fbr canvas,
+    #receipt_wrapper #qrcode-pra img,
+    #receipt_wrapper #qrcode-fbr img {
+        display: block;
+        margin: 0 auto;
     }
 
     @media print {
@@ -92,11 +106,14 @@
             padding: 0 !important;
         }
 
+        /* Cancel global ospos_print.css 75% shrink on receipts. */
         #receipt_wrapper {
-            max-width: 76mm;
-            padding-left: 2.5mm;
-            padding-right: 2.5mm;
-            margin: 0 auto;
+            width: 100% !important;
+            max-width: 80mm !important;
+            padding-left: 2mm !important;
+            padding-right: 2mm !important;
+            margin: 0 auto !important;
+            font-size: <?= $printFontSize ?>px !important;
         }
 
         #receipt_wrapper #receipt_header {
@@ -109,8 +126,8 @@
         }
 
         #receipt_wrapper #company_name {
-            font-size: 11px;
-            line-height: 1.2;
+            font-size: 1.15em;
+            line-height: 1.25;
         }
 
         #receipt_wrapper #receipt_items {
@@ -120,32 +137,47 @@
 
         #receipt_wrapper #receipt_items th,
         #receipt_wrapper #receipt_items td {
-            padding: 1px 1px;
-            font-size: 10px;
-            line-height: 1.2;
+            padding: 2px 1px;
+            font-size: inherit;
+            line-height: 1.25;
         }
 
         #receipt_wrapper .company_logo img {
-            max-width: 95px;
-            max-height: 48px;
+            max-width: 115px;
+            max-height: 55px;
         }
 
         #receipt_wrapper #barcode {
-            margin-top: 6px;
+            margin-top: 8px;
         }
 
         #receipt_wrapper #barcode > div {
-            padding: 2px !important;
+            padding: 3px !important;
+        }
+
+        #receipt_wrapper #barcode .fiscal-invoice-label {
+            font-size: 8px;
+            line-height: 1.2;
+            margin-top: 4px;
+            word-break: break-word;
         }
 
         #receipt_wrapper #qrcode-pra,
         #receipt_wrapper #qrcode-fbr {
-            width: 80px !important;
-            height: 80px !important;
+            width: 115px !important;
+            height: 115px !important;
+        }
+
+        #receipt_wrapper #qrcode-pra canvas,
+        #receipt_wrapper #qrcode-fbr canvas,
+        #receipt_wrapper #qrcode-pra img,
+        #receipt_wrapper #qrcode-fbr img {
+            width: 115px !important;
+            height: 115px !important;
         }
 
         #receipt_wrapper #barcode img {
-            height: 36px !important;
+            height: 40px !important;
         }
     }
 </style>
@@ -257,15 +289,15 @@
     <div id="barcode" style="display:table; width:100%; table-layout:fixed; margin:10px auto 0; page-break-inside:avoid;">
         <div style="display:table-cell; width:50%; text-align:center; vertical-align:top; padding:6px; page-break-inside:avoid;">
             <img src="<?= base_url('images/pra-pos.jpeg') ?>" alt="PRA Logo" style="display:block; height:45px; width:auto; max-width:100%; margin:0 auto 6px;">
-            <div id="qrcode-pra" style="width:80px; height:80px; max-width:100%; margin:0 auto;"
+            <div id="qrcode-pra" class="fiscal-qrcode" style="width:115px; height:115px; max-width:100%; margin:0 auto;"
                  data-qr-text="<?= esc('PRA Invoice# ' . ($pra_invoice_number ?? ''), 'attr') ?>"></div>
-            <div style="font-size:9pt; margin-top:6px; word-break:break-word;"><?= 'PRA Invoice# ' . esc($pra_invoice_number ?? '') ?></div>
+            <div class="fiscal-invoice-label"><?= 'PRA Invoice# ' . esc($pra_invoice_number ?? '') ?></div>
         </div>
         <div style="display:table-cell; width:50%; text-align:center; vertical-align:top; padding:6px; page-break-inside:avoid;">
             <img src="<?= base_url('images/fbr-pos.png') ?>" alt="FBR Logo" style="display:block; height:45px; width:auto; max-width:100%; margin:0 auto 6px;">
-            <div id="qrcode-fbr" style="width:80px; height:80px; max-width:100%; margin:0 auto;"
+            <div id="qrcode-fbr" class="fiscal-qrcode" style="width:115px; height:115px; max-width:100%; margin:0 auto;"
                  data-qr-text="<?= esc('FBR Invoice# ' . ($fbr_invoice_number ?? ''), 'attr') ?>"></div>
-            <div style="font-size:9pt; margin-top:6px; word-break:break-word;"><?= 'FBR Invoice# ' . esc($fbr_invoice_number ?? '') ?></div>
+            <div class="fiscal-invoice-label"><?= 'FBR Invoice# ' . esc($fbr_invoice_number ?? '') ?></div>
         </div>
     </div>
 </div>
@@ -275,10 +307,20 @@
     $(document).ready(function() {
         var praEl = document.getElementById('qrcode-pra');
         var fbrEl = document.getElementById('qrcode-fbr');
-        var qrSize = 80;
+        var qrSize = 115;
         if (typeof QRCode !== 'undefined' && praEl && fbrEl) {
-            new QRCode(praEl, { text: praEl.getAttribute('data-qr-text'), width: qrSize, height: qrSize });
-            new QRCode(fbrEl, { text: fbrEl.getAttribute('data-qr-text'), width: qrSize, height: qrSize });
+            new QRCode(praEl, {
+                text: praEl.getAttribute('data-qr-text'),
+                width: qrSize,
+                height: qrSize,
+                correctLevel: QRCode.CorrectLevel.M
+            });
+            new QRCode(fbrEl, {
+                text: fbrEl.getAttribute('data-qr-text'),
+                width: qrSize,
+                height: qrSize,
+                correctLevel: QRCode.CorrectLevel.M
+            });
         }
     });
 </script>
