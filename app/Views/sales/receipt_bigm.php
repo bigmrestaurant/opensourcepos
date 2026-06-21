@@ -65,6 +65,9 @@ $receiptFontSize = max(1, (int) ($config['receipt_font_size'] ?? 12));
     #receipt_wrapper #receipt_items td:nth-child(4) {
         white-space: nowrap;
     }
+    .receipt-bottom-spacer {
+        display: none;
+    }
     @media print {
         /* No size: 80mm here — the OS paper size (set to 80mm roll in the printer
            driver) already controls page width. Setting size:80mm in CSS activates
@@ -99,7 +102,6 @@ $receiptFontSize = max(1, (int) ($config['receipt_font_size'] ?? 12));
             max-width: 100% !important;
             padding-left: 15px !important;
             padding-right: 35px !important;
-            padding-bottom: 30px !important;
         }
 
         #receipt_wrapper #receipt_header {
@@ -147,6 +149,11 @@ $receiptFontSize = max(1, (int) ($config['receipt_font_size'] ?? 12));
             /* 34% gives ~84px — ample for "Rs 3,580.00" */
             width: 34% !important;
             padding-right: 0 !important;
+        }
+
+        .receipt-bottom-spacer {
+            display: block !important;
+            height: 30px;
         }
     }
 </style>
@@ -267,6 +274,7 @@ $receiptFontSize = max(1, (int) ($config['receipt_font_size'] ?? 12));
             <div style="font-size:9pt; margin-top:6px; word-break:break-word;"><?= 'FBR Invoice# ' . esc($fbr_invoice_number ?? '') ?></div>
         </div>
     </div>
+    <div class="receipt-bottom-spacer"></div>
 </div>
 
 <script src="<?= base_url('js/qrcode.min.js') ?>"></script>
