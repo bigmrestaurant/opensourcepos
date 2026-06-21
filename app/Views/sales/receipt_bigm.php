@@ -98,8 +98,8 @@ $receiptFontSize = max(1, (int) ($config['receipt_font_size'] ?? 12));
             width: 100% !important;
             max-width: 100% !important;
             padding-left: 15px !important;
-            padding-right: 40px !important;
-            padding-bottom: 20px !important;
+            padding-right: 35px !important;
+            padding-bottom: 30px !important;
         }
 
         #receipt_wrapper #receipt_header {
