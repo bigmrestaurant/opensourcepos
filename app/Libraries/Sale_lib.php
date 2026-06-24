@@ -194,43 +194,55 @@ class Sale_lib
         // TODO: This set of if/elseif/else needs to be converted to a switch statement
         // Entry sequence (this will render kits in the expected sequence)
         if ($this->config['line_sequence'] === '0') {
-            $sort = [];
+            $sort = ['line' => []];
 
             foreach ($filtered_cart as $k => $v) {
                 $sort['line'][$k] = $v['line'];
             }
-            array_multisort($sort['line'], SORT_ASC, $filtered_cart);
+
+            if (! empty($sort['line'])) {
+                array_multisort($sort['line'], SORT_ASC, $filtered_cart);
+            }
         }
         // Group by Stock Type (nonstock first - type 1, stock next - type 0)
         elseif ($this->config['line_sequence'] === '1') {    // TODO: Need to change these to constants
-            $sort = [];
+            $sort = ['stock_type' => [], 'description' => [], 'name' => []];
 
             foreach ($filtered_cart as $k => $v) {
                 $sort['stock_type'][$k]  = $v['stock_type'];
                 $sort['description'][$k] = $v['description'];
                 $sort['name'][$k]        = $v['name'];
             }
-            array_multisort($sort['stock_type'], SORT_DESC, $sort['description'], SORT_ASC, $sort['name'], SORT_ASC, $filtered_cart);
+
+            if (! empty($sort['stock_type'])) {
+                array_multisort($sort['stock_type'], SORT_DESC, $sort['description'], SORT_ASC, $sort['name'], SORT_ASC, $filtered_cart);
+            }
         }
         // Group by Item Category
         elseif ($this->config['line_sequence'] === '2') {    // TODO: Need to change these to constants
-            $sort = [];
+            $sort = ['category' => [], 'description' => [], 'name' => []];
 
             foreach ($filtered_cart as $k => $v) {
                 $sort['category'][$k]    = $v['stock_type'];
                 $sort['description'][$k] = $v['description'];
                 $sort['name'][$k]        = $v['name'];
             }
-            array_multisort($sort['category'], SORT_DESC, $sort['description'], SORT_ASC, $sort['name'], SORT_ASC, $filtered_cart);
+
+            if (! empty($sort['category'])) {
+                array_multisort($sort['category'], SORT_DESC, $sort['description'], SORT_ASC, $sort['name'], SORT_ASC, $filtered_cart);
+            }
         }
         // Group by entry sequence in descending sequence (the Standard)
         else {
-            $sort = [];
+            $sort = ['line' => []];
 
             foreach ($filtered_cart as $k => $v) {
                 $sort['line'][$k] = $v['line'];
             }
-            array_multisort($sort['line'], SORT_ASC, $filtered_cart);
+
+            if (! empty($sort['line'])) {
+                array_multisort($sort['line'], SORT_ASC, $filtered_cart);
+            }
         }
 
         return $filtered_cart;
