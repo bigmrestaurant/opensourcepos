@@ -864,7 +864,7 @@ if ($employee->has_grant('reports_sales', session('person_id'))) {
 
         $('#cart_contents input').keypress(function(event) {
             if (event.which == 13) {
-                $(this).parents('tr').prevAll('form:first').submit();
+                $(this).closest('form').submit();
             }
         });
 
@@ -908,7 +908,7 @@ if ($employee->has_grant('reports_sales', session('person_id'))) {
         }
 
         $('[name="price"],[name="quantity"],[name="description"],[name="serialnumber"],[name="discounted_total"]').change(function() {
-            $(this).parents('tr').prevAll('form:first').submit()
+            $(this).closest('form').submit();
         });
 
         // BigM: bill-level discount and service charge recompute the totals, so

@@ -664,9 +664,12 @@ class Sales extends Secure_Controller
                 return $this->_reload($data);
             }
 
-            $item_location    = $this->request->getPost('location', FILTER_SANITIZE_NUMBER_INT);
-            $discounted_total = $this->request->getPost('discounted_total') !== ''
-                ? parse_decimals($this->request->getPost('discounted_total') ?? '')
+            $item_location         = $this->request->getPost('location', FILTER_SANITIZE_NUMBER_INT);
+            $discounted_total_post = $this->request->getPost('discounted_total');
+            // Must treat a missing field (null) as absent — !== '' alone is true for null
+            // and edit_item() would recalculate quantity from an empty total → 0.
+            $discounted_total = ($discounted_total_post !== null && $discounted_total_post !== '')
+                ? parse_decimals($discounted_total_post)
                 : null;
 
             $this->sale_lib->edit_item($line, $description, $serialnumber, $quantity, $discount, $discount_type, $price, $discounted_total);
