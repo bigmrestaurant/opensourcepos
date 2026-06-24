@@ -409,7 +409,9 @@ class Employee extends Person
      */
     public function is_logged_in(): bool
     {
-        return $this->session->get('person_id') !== false;
+        $personId = $this->session->get('person_id');
+
+        return is_int($personId) && $personId > 0;
     }
 
     /**
