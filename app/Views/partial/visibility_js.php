@@ -1,4 +1,4 @@
-<?php // used in reports ?>
+<?php // used in reports?>
 // Utility functions for safe localStorage access
 function safeSetItem(key, value) {
     try {
@@ -92,7 +92,7 @@ applySummaryVisibility();
 // Initialize dialog (if editable)
 var init_dialog = function () {
 <?php if (isset($editable)): ?>
-        table_support.submit_handler('<?php echo site_url("reports/get_detailed_{$editable}_row") ?>');
+        table_support.submit_handler('<?= site_url("reports/get_detailed_{$editable}_row") ?>');
     dialog_support.init("a.modal-dlg");
 <?php endif; ?>
 };

@@ -4,16 +4,13 @@ namespace App\Controllers;
 
 use App\Models\Person;
 use CodeIgniter\HTTP\ResponseInterface;
-use Config\Services;
+
 use function Tamtamchik\NameCase\str_name_case;
 
 abstract class Persons extends Secure_Controller
 {
     protected Person $person;
 
-    /**
-     * @param string|null $module_id
-     */
     public function __construct(?string $module_id = null)
     {
         parent::__construct($module_id);
@@ -21,9 +18,6 @@ abstract class Persons extends Secure_Controller
         $this->person = model(Person::class);
     }
 
-    /**
-     * @return string
-     */
     public function getIndex(): string
     {
         $data['table_headers'] = get_people_manage_table_headers();
@@ -33,11 +27,10 @@ abstract class Persons extends Secure_Controller
 
     /**
      * Gives search suggestions based on what is being searched for
-     * @return ResponseInterface
      */
     public function getSuggest(): ResponseInterface
     {
-        $search = $this->request->getGet('term');
+        $search      = $this->request->getGet('term');
         $suggestions = $this->person->get_search_suggestions($search);
 
         return $this->response->setJSON($suggestions);
@@ -45,7 +38,6 @@ abstract class Persons extends Secure_Controller
 
     /**
      * Gets one row for a person manage table. This is called using AJAX to update one row.
-     * @return ResponseInterface
      */
     public function getRow(int $row_id): ResponseInterface
     {
@@ -69,8 +61,6 @@ abstract class Persons extends Secure_Controller
         $adjusted_name = str_name_case($input);
 
         // TODO: Use preg_replace to match HTML entities and convert them to lowercase. This is a workaround for https://github.com/tamtamchik/namecase/issues/20
-        return preg_replace_callback('/&[a-zA-Z0-9#]+;/', function ($matches) {
-            return strtolower($matches[0]);
-        }, $adjusted_name);
+        return preg_replace_callback('/&[a-zA-Z0-9#]+;/', static fn ($matches) => strtolower($matches[0]), $adjusted_name);
     }
 }

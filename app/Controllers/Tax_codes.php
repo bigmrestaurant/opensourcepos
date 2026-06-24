@@ -4,10 +4,9 @@ namespace App\Controllers;
 
 use App\Models\Tax_code;
 use CodeIgniter\HTTP\ResponseInterface;
-use Config\Services;
 
 /**
- * @property tax_code tax_code
+ * @property Tax_code tax_code
  */
 class Tax_codes extends Secure_Controller
 {
@@ -21,22 +20,15 @@ class Tax_codes extends Secure_Controller
         helper('tax_helper');
     }
 
-
-    /**
-     * @return string
-     */
     public function getIndex(): string
     {
         return view('taxes/tax_codes', $this->get_data());
     }
 
-    /**
-     * @return array
-     */
     public function get_data(): array
     {
-
         $data['table_headers'] = get_tax_code_table_headers();
+
         return $data;
     }
 
@@ -53,7 +45,7 @@ class Tax_codes extends Secure_Controller
         $sort   = $this->sanitizeSortColumn(get_tax_code_table_headers(), $this->request->getGet('sort', FILTER_SANITIZE_FULL_SPECIAL_CHARS), 'tax_code');
         $order  = $this->request->getGet('order', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
 
-        $tax_codes = $this->tax_code->search($search, $limit, $offset, $sort, $order);
+        $tax_codes  = $this->tax_code->search($search, $limit, $offset, $sort, $order);
         $total_rows = $this->tax_code->get_found_rows($search);
 
         $data_rows = [];
@@ -65,10 +57,6 @@ class Tax_codes extends Secure_Controller
         return $this->response->setJSON(['total' => $total_rows, 'rows' => $data_rows]);
     }
 
-    /**
-     * @param int $row_id
-     * @return ResponseInterface
-     */
     public function getRow(int $row_id): ResponseInterface
     {
         $data_row = get_tax_code_data_row($this->tax_code->get_info($row_id));
@@ -76,57 +64,45 @@ class Tax_codes extends Secure_Controller
         return $this->response->setJSON($data_row);
     }
 
-    /**
-     * @param int $tax_code_id
-     * @return string
-     */
     public function getView(int $tax_code_id = NEW_ENTRY): string
     {
         $data['tax_code_info'] = $this->tax_code->get_info($tax_code_id);
 
-        return view("taxes/tax_code_form", $data);
+        return view('taxes/tax_code_form', $data);
     }
 
-
-    /**
-     * @param int $tax_code_id
-     * @return ResponseInterface
-     */
     public function postSave(int $tax_code_id = NEW_ENTRY): ResponseInterface
     {
         $tax_code_data = [
             'tax_code'      => $this->request->getPost('tax_code', FILTER_SANITIZE_FULL_SPECIAL_CHARS),
             'tax_code_name' => $this->request->getPost('tax_code_name', FILTER_SANITIZE_FULL_SPECIAL_CHARS),
             'city'          => $this->request->getPost('city', FILTER_SANITIZE_FULL_SPECIAL_CHARS),
-            'state'         => $this->request->getPost('state', FILTER_SANITIZE_FULL_SPECIAL_CHARS)
+            'state'         => $this->request->getPost('state', FILTER_SANITIZE_FULL_SPECIAL_CHARS),
         ];
 
         if ($this->tax_code->save($tax_code_data)) {
-            if ($tax_code_id == NEW_ENTRY) {
+            if ($tax_code_id === NEW_ENTRY) {
                 return $this->response->setJSON([
                     'success' => true,
                     'message' => lang('Tax_codes.successful_adding'),
-                    'id'      => $tax_code_data['tax_code_id']
-                ]);
-            } else {
-                return $this->response->setJSON([
-                    'success' => true,
-                    'message' => lang('Tax_codes.successful_updating'),
-                    'id'      => $tax_code_id
+                    'id'      => $tax_code_data['tax_code_id'],
                 ]);
             }
-        } else {
+
             return $this->response->setJSON([
-                'success' => false,
-                'message' => lang('Tax_codes.error_adding_updating') . ' ' . $tax_code_data['tax_code_id'],
-                'id'      => NEW_ENTRY
+                'success' => true,
+                'message' => lang('Tax_codes.successful_updating'),
+                'id'      => $tax_code_id,
             ]);
         }
+
+        return $this->response->setJSON([
+            'success' => false,
+            'message' => lang('Tax_codes.error_adding_updating') . ' ' . $tax_code_data['tax_code_id'],
+            'id'      => NEW_ENTRY,
+        ]);
     }
 
-    /**
-     * @return ResponseInterface
-     */
     public function postDelete(): ResponseInterface
     {
         $tax_codes_to_delete = $this->request->getPost('ids', FILTER_SANITIZE_NUMBER_INT);
@@ -134,10 +110,10 @@ class Tax_codes extends Secure_Controller
         if ($this->tax_code->delete_list($tax_codes_to_delete)) {
             return $this->response->setJSON([
                 'success' => true,
-                'message' => lang('Tax_codes.successful_deleted') . ' ' . count($tax_codes_to_delete) . ' ' . lang('Tax_codes.one_or_multiple')
+                'message' => lang('Tax_codes.successful_deleted') . ' ' . count($tax_codes_to_delete) . ' ' . lang('Tax_codes.one_or_multiple'),
             ]);
-        } else {
-            return $this->response->setJSON(['success' => false, 'message' => lang('Tax_codes.cannot_be_deleted')]);
         }
+
+        return $this->response->setJSON(['success' => false, 'message' => lang('Tax_codes.cannot_be_deleted')]);
     }
 }

@@ -1,22 +1,22 @@
 <?php
 /**
  * @var string $sale_id_num
- * @var bool $print_after_sale
+ * @var bool   $print_after_sale
  * @var string $customer_info
  * @var string $company_info
  * @var string $invoice_number
  * @var string $transaction_date
- * @var float $total
- * @var bool $include_hsn
+ * @var float  $total
+ * @var bool   $include_hsn
  * @var string $discount
- * @var array $cart
- * @var float $subtotal
- * @var array $taxes
- * @var array $payments
- * @var float $amount_change
+ * @var array  $cart
+ * @var float  $subtotal
+ * @var array  $taxes
+ * @var array  $payments
+ * @var float  $amount_change
  * @var string $barcode
- * @var int $sale_id
- * @var array $config
+ * @var int    $sale_id
+ * @var array  $config
  */
 ?>
 
@@ -25,19 +25,21 @@
 <?php
 if (isset($error_message)) {
     echo '<div class="alert alert-dismissible alert-danger">' . $error_message . '</div>';
+
     exit;
 }
 ?>
 
-<?php if (!empty($fiscal_warning)) { ?>
-    <div class="alert alert-dismissible alert-warning"><?= esc($fiscal_warning) ?></div>
+<?php if (! empty($fiscal_warning)) { ?>
+    <style>@media print { .fiscal-warning-screen { display: none !important; } }</style>
+    <div class="alert alert-dismissible alert-warning fiscal-warning-screen"><?= esc($fiscal_warning) ?></div>
 <?php } ?>
 
-<?php if (!empty($customer_email)): ?>
+<?php if (! empty($customer_email)): ?>
     <script type="text/javascript">
         $(document).ready(function() {
             var send_email = function() {
-                $.get('<?= site_url() . "sales/sendPdf/$sale_id_num" ?>',
+                $.get('<?= site_url() . "sales/sendPdf/{$sale_id_num}" ?>',
                     function(response) {
                         $.notify({
                             message: response.message
@@ -50,7 +52,7 @@ if (isset($error_message)) {
 
             $("#show_email_button").click(send_email);
 
-            <?php if (!empty($email_receipt)): ?>
+            <?php if (! empty($email_receipt)): ?>
                 send_email();
             <?php endif; ?>
         });
@@ -68,13 +70,13 @@ if (isset($error_message)) {
      * echo anchor('sales', '<span class="glyphicon glyphicon-print">&nbsp;</span>' . lang('Common.print'), ['class' => 'btn btn-info btn-sm', 'id' => 'show_print_button', 'onclick' => 'window.print();'));
      */
 ?>
-    <?php if (isset($customer_email) && !empty($customer_email)): ?>
+    <?php if (isset($customer_email) && ! empty($customer_email)): ?>
         <a href="javascript:void(0);">
             <div class="btn btn-info btn-sm" id="show_email_button"><?= '<span class="glyphicon glyphicon-envelope">&nbsp;</span>' . lang('Sales.send_invoice') ?></div>
         </a>
     <?php endif; ?>
-    <?= anchor("sales", '<span class="glyphicon glyphicon-shopping-cart">&nbsp;</span>' . lang('Sales.register'), ['class' => 'btn btn-info btn-sm', 'id' => 'show_sales_button']) ?>
-    <?= anchor("sales/manage", '<span class="glyphicon glyphicon-list-alt">&nbsp;</span>' . lang('Sales.takings'), ['class' => 'btn btn-info btn-sm', 'id' => 'show_takings_button']) ?>
+    <?= anchor('sales', '<span class="glyphicon glyphicon-shopping-cart">&nbsp;</span>' . lang('Sales.register'), ['class' => 'btn btn-info btn-sm', 'id' => 'show_sales_button']) ?>
+    <?= anchor('sales/manage', '<span class="glyphicon glyphicon-list-alt">&nbsp;</span>' . lang('Sales.takings'), ['class' => 'btn btn-info btn-sm', 'id' => 'show_takings_button']) ?>
 </div>
 
 <div id="page-wrap">
@@ -87,7 +89,7 @@ if (isset($error_message)) {
         </div>
 
         <div id="logo">
-            <?php if ($config['company_logo'] != '') { ?>
+            <?php if ($config['company_logo'] !== '') { ?>
                 <img id="image" src="<?= base_url('uploads/' . esc($config['company_logo'], 'url')) ?>" alt="company_logo">
             <?php } ?>
             <div>&nbsp;</div>
@@ -121,7 +123,7 @@ if (isset($error_message)) {
             <?php
         $invoice_columns = 6;
 if ($include_hsn) {
-    $invoice_columns += 1;
+    $invoice_columns++;
     ?>
                 <th><?= lang('Sales.hsn') ?></th>
             <?php } ?>
@@ -131,7 +133,7 @@ if ($include_hsn) {
             <th><?= lang('Sales.discount') ?></th>
             <?php
     if ($discount > 0) {
-        $invoice_columns += 1;
+        $invoice_columns++;
         ?>
                 <th><?= lang('Sales.customer_discount') ?></th>
             <?php } ?>
@@ -140,17 +142,17 @@ if ($include_hsn) {
 
         <?php
         foreach ($cart as $line => $item) {
-            if ($item['print_option'] == PRINT_YES) {
+            if ($item['print_option'] === PRINT_YES) {
                 ?>
                 <tr class="item-row">
                     <td><?= esc($item['item_number']) ?></td>
                     <?php if ($include_hsn): ?>
                         <td style="text-align: center;"><?= esc($item['hsn_code']) ?></td>
                     <?php endif; ?>
-                    <td class="item-name"><?= ($item['is_serialized'] || $item['allow_alt_description']) && !empty($item['description']) ? esc($item['description']) : esc($item['name'] . ' ' . $item['attribute_values']) ?></td>
+                    <td class="item-name"><?= ($item['is_serialized'] || $item['allow_alt_description']) && ! empty($item['description']) ? esc($item['description']) : esc($item['name'] . ' ' . $item['attribute_values']) ?></td>
                     <td style="text-align: center;"><?= to_quantity_decimals($item['quantity']) ?></td>
                     <td><?= to_currency($item['price']) ?></td>
-                    <td style="text-align: center;"><?= ($item['discount_type'] == FIXED) ? to_currency($item['discount']) : to_decimals($item['discount']) . '%' ?></td>
+                    <td style="text-align: center;"><?= ($item['discount_type'] === FIXED) ? to_currency($item['discount']) : to_decimals($item['discount']) . '%' ?></td>
                     <?php if ($discount > 0): ?>
                         <td style="text-align: center;"><?= to_currency($item['discounted_total'] / $item['quantity']) ?></td>
                     <?php endif; ?>
@@ -180,19 +182,19 @@ if ($include_hsn) {
         <?php foreach ($taxes as $tax_group_index => $tax) { ?>
             <tr>
                 <td colspan="<?= $invoice_columns - 3 ?>" class="blank"> </td>
-                <td colspan="2" class="total-line"><?= (float)$tax['tax_rate'] . '% ' . esc($tax['tax_group']) ?></td>
+                <td colspan="2" class="total-line"><?= (float) $tax['tax_rate'] . '% ' . esc($tax['tax_group']) ?></td>
                 <td class="total-value" id="taxes"><?= to_currency_tax($tax['sale_tax_amount']) ?></td>
             </tr>
         <?php } ?>
 
-        <?php if ((float) ($service_charge ?? 0) != 0) { ?>
+        <?php if ((float) ($service_charge ?? 0) !== 0) { ?>
             <tr>
                 <td colspan="<?= $invoice_columns - 3 ?>" class="blank"> </td>
                 <td colspan="2" class="total-line"><?= lang('Sales.service_charge') ?></td>
                 <td class="total-value"><?= to_currency($service_charge) ?></td>
             </tr>
         <?php } ?>
-        <?php if ((float) ($bill_discount ?? 0) != 0) { ?>
+        <?php if ((float) ($bill_discount ?? 0) !== 0) { ?>
             <tr>
                 <td colspan="<?= $invoice_columns - 3 ?>" class="blank"> </td>
                 <td colspan="2" class="total-line"><?= lang('Sales.bill_discount') ?></td>
@@ -207,12 +209,13 @@ if ($include_hsn) {
         </tr>
 
         <?php
-$only_sale_check = false;
+$only_sale_check         = false;
 $show_giftcard_remainder = false;
+
 foreach ($payments as $payment_id => $payment) {
-    $only_sale_check |= $payment['payment_type'] == lang('Sales.check');
+    $only_sale_check |= $payment['payment_type'] === lang('Sales.check');
     $splitpayment = explode(':', $payment['payment_type']);    // TODO: $splitpayment does not meet variable naming standards for this project
-    $show_giftcard_remainder |= $splitpayment[0] == lang('Sales.giftcard');
+    $show_giftcard_remainder |= $splitpayment[0] === lang('Sales.giftcard');
     ?>
             <tr>
                 <td colspan="<?= $invoice_columns - 3 ?>" class="blank"> </td>
@@ -229,7 +232,7 @@ foreach ($payments as $payment_id => $payment) {
             </tr>
         <?php } ?>
 
-        <?php if (!empty($payments)) { ?>
+        <?php if (! empty($payments)) { ?>
             <tr>
                 <td colspan="<?= $invoice_columns - 3 ?>" class="blank"> </td>
                 <td colspan="2" class="total-line"><?= lang($amount_change >= 0 ? ($only_sale_check ? 'Sales.check_balance' : 'Sales.change_due') : 'Sales.amount_due') ?></td>
@@ -258,14 +261,14 @@ foreach ($payments as $payment_id => $payment) {
     $(window).on("load", function() {
         // Install firefox addon in order to use this plugin
         if (window.jsPrintSetup) {
-            <?php if (!$config['print_header']) { ?>
+            <?php if (! $config['print_header']) { ?>
                 // Set page header
                 jsPrintSetup.setOption('headerStrLeft', '');
                 jsPrintSetup.setOption('headerStrCenter', '');
                 jsPrintSetup.setOption('headerStrRight', '');
             <?php } ?>
 
-            <?php if (!$config['print_footer']) { ?>
+            <?php if (! $config['print_footer']) { ?>
                 // Set empty page footer
                 jsPrintSetup.setOption('footerStrLeft', '');
                 jsPrintSetup.setOption('footerStrCenter', '');

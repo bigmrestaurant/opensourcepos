@@ -1,15 +1,16 @@
 <?php
 /**
- * @var bool $has_errors
- * @var bool $is_latest
- * @var bool $is_new_install
- * @var string $latest_version
- * @var bool $gcaptcha_enabled
- * @var CodeIgniter\HTTP\IncomingRequest $request
- * @var array $config
+ * @var bool            $has_errors
+ * @var bool            $is_latest
+ * @var bool            $is_new_install
+ * @var string          $latest_version
+ * @var bool            $gcaptcha_enabled
+ * @var IncomingRequest $request
+ * @var array           $config
  * @var $validation
  */
 
+use CodeIgniter\HTTP\IncomingRequest;
 use Config\Services;
 
 $request = Services::request();
@@ -27,12 +28,12 @@ $request = Services::request();
     <link rel="shortcut icon" type="image/x-icon" href="images/favicon.ico">
     <?php
     $theme = (empty($config['theme'])
-        || 'paper' == $config['theme']
-        || 'readable' == $config['theme']
+        || 'paper' === $config['theme']
+        || 'readable' === $config['theme']
         ? 'flatly'
         : $config['theme']);
-    ?>
-    <link rel="stylesheet" href="resources/bootswatch5/<?= "$theme" ?>/bootstrap.min.css">
+?>
+    <link rel="stylesheet" href="resources/bootswatch5/<?= "{$theme}" ?>/bootstrap.min.css">
     <link rel="stylesheet" href="css/login.css">
     <meta name="theme-color" content="#2c3e50">
 </head>
@@ -41,7 +42,7 @@ $request = Services::request();
     <main class="d-flex justify-content-around align-items-center flex-grow-1">
         <div class="container-login container-fluid d-flex flex-column flex-md-row bg-body shadow rounded m-3 p-4 p-md-0">
             <div class="box-logo d-flex flex-column justify-content-center align-items-center border-end border-secondary-subtle px-4 pb-3 p-md-4">
-                <?php if (isset($config['company_logo']) && !empty($config['company_logo'])): ?>
+                <?php if (isset($config['company_logo']) && ! empty($config['company_logo'])): ?>
                     <img class="logo w-100" src="<?= base_url('uploads/' . esc($config['company_logo'], 'url')) ?>" alt="<?= esc(lang('Common.logo') . '&nbsp;' . $config['company']) ?>">
                 <?php else: ?>
                     <svg class="logo text-primary" role="img" viewBox="0 0 308.57998 308.57997" xmlns="http://www.w3.org/2000/svg">
@@ -53,19 +54,19 @@ $request = Services::request();
             </div>
             <section class="box-login d-flex flex-column justify-content-center align-items-center p-md-4">
                 <?= form_open('login', ['id' => 'login-form']) ?>
-                
+
                 <h3 id="form-heading" class="text-center m-0">
-                    <?php if (!$is_latest || $is_new_install): ?>
+                    <?php if (! $is_latest || $is_new_install): ?>
                         <?= lang('Login.migration_required') ?>
                     <?php else: ?>
                         <?= lang('Login.welcome', [lang('Common.software_short')]) ?>
                     <?php endif; ?>
                 </h3>
-                
+
                 <div id="migration-warning" class="alert alert-warning mt-3<?= $is_new_install ? '' : ' d-none' ?>">
                     <strong><?= lang('Login.migration_auth_message', [$latest_version]) ?></strong>
                 </div>
-                
+
                 <?php if ($has_errors): ?>
                     <?php foreach ($validation->getErrors() as $error): ?>
                         <div class="alert alert-danger mt-3">
@@ -73,16 +74,16 @@ $request = Services::request();
                         </div>
                     <?php endforeach; ?>
                 <?php endif; ?>
-                
+
                 <div id="migration-success" class="alert alert-success d-none mt-3">
                     <strong><?= lang('Login.migration_complete') ?></strong> <?= lang('Login.migration_complete_login') ?>
                 </div>
-                
+
                 <div id="migration-progress" class="d-none mt-4">
                     <h3 class="text-center mb-4"><?= lang('Login.migration_initializing') ?></h3>
                     <div class="progress mb-3" style="height: 30px;">
-                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" 
-                             role="progressbar" 
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary"
+                             role="progressbar"
                              style="width: 100%">
                         </div>
                     </div>
@@ -90,22 +91,26 @@ $request = Services::request();
                         <?= lang('Login.migration_running') ?>
                     </p>
                 </div>
-                
+
                 <div id="migration-error" class="alert alert-danger d-none mt-3" role="alert">
                     <strong>Error:</strong> <span id="migration-error-message"></span>
                 </div>
-                
+
                 <div id="login-fields" class="w-100<?= $is_new_install ? ' d-none' : '' ?>">
-                    <?php if (empty($config['login_form']) || 'floating_labels' == ($config['login_form'])): ?>
+                    <?php if (empty($config['login_form']) || 'floating_labels' === ($config['login_form'])): ?>
                         <div class="form-floating mt-3">
-                            <input class="form-control" id="input-username" name="username" type="text" placeholder="<?= lang('Login.username') ?>" <?php if (ENVIRONMENT == "testing") echo 'value="admin"'; ?>>
+                            <input class="form-control" id="input-username" name="username" type="text" placeholder="<?= lang('Login.username') ?>" <?php if (ENVIRONMENT === 'testing') {
+                                echo 'value="admin"';
+                            } ?>>
                             <label for="input-username"><?= lang('Login.username') ?></label>
                         </div>
                         <div class="form-floating mb-3">
-                            <input class="form-control" id="input-password" name="password" type="password" placeholder="<?= lang('Login.password') ?>" <?php if (ENVIRONMENT == "testing") echo 'value="pointofsale"'; ?>>
+                            <input class="form-control" id="input-password" name="password" type="password" placeholder="<?= lang('Login.password') ?>" <?php if (ENVIRONMENT === 'testing') {
+                                echo 'value="pointofsale"';
+                            } ?>>
                             <label for="input-password"><?= lang('Login.password') ?></label>
                         </div>
-                    <?php elseif ('input_groups' == ($config['login_form'])): ?>
+                    <?php elseif ('input_groups' === ($config['login_form'])): ?>
                         <div class="input-group mt-3">
                             <span class="input-group-text" id="input-username">
                                 <svg class="bi bi-person-fill" fill="currentColor" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
@@ -113,7 +118,9 @@ $request = Services::request();
                                     <path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6" />
                                 </svg>
                             </span>
-                            <input class="form-control" name="username" type="text" placeholder="<?= lang('Login.username'); ?>" aria-label="<?= lang('Login.username') ?>" aria-describedby="input-username" <?php if (ENVIRONMENT == "testing") echo 'value="admin"'; ?>>
+                            <input class="form-control" name="username" type="text" placeholder="<?= lang('Login.username'); ?>" aria-label="<?= lang('Login.username') ?>" aria-describedby="input-username" <?php if (ENVIRONMENT === 'testing') {
+                                echo 'value="admin"';
+                            } ?>>
                         </div>
                         <div class="input-group mb-3">
                             <span class="input-group-text" id="input-password">
@@ -122,16 +129,18 @@ $request = Services::request();
                                     <path d="M3.5 11.5a3.5 3.5 0 1 1 3.163-5H14L15.5 8 14 9.5l-1-1-1 1-1-1-1 1-1-1-1 1H6.663a3.5 3.5 0 0 1-3.163 2M2.5 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2" />
                                 </svg>
                             </span>
-                            <input class="form-control" name="password" type="password" placeholder="<?= lang('Login.password') ?>" aria-label="<?= lang('Login.password') ?>" aria-describedby="input-password" <?php if (ENVIRONMENT == "testing") echo 'value="pointofsale"'; ?>>
+                            <input class="form-control" name="password" type="password" placeholder="<?= lang('Login.password') ?>" aria-label="<?= lang('Login.password') ?>" aria-describedby="input-password" <?php if (ENVIRONMENT === 'testing') {
+                                echo 'value="pointofsale"';
+                            } ?>>
                         </div>
                     <?php endif; ?>
-                    
+
                     <?php if ($gcaptcha_enabled): ?>
                         <script src="https://www.google.com/recaptcha/api.js"></script>
                         <div class="g-recaptcha mb-3" style="text-align: center;" data-sitekey="<?= esc($config['gcaptcha_site_key']) ?>"></div>
                     <?php endif; ?>
                 </div>
-                
+
                 <div class="d-grid">
                     <button id="submit-button" class="btn btn-lg btn-primary" name="login-button" type="submit">
                         <?php if ($is_new_install): ?>
@@ -159,7 +168,7 @@ $request = Services::request();
         </div>
     </footer>
 
-    <?php if (ENVIRONMENT == 'development' || get_cookie('debug') == 'true' || $request->getGet('debug') == 'true') : ?>
+    <?php if (ENVIRONMENT === 'development' || get_cookie('debug') === 'true' || $request->getGet('debug') === 'true') : ?>
         <!-- inject:login:debug:js -->
         <!-- endinject -->
     <?php else : ?>
@@ -257,9 +266,9 @@ $request = Services::request();
             $form.on('submit', function(e) {
                 if (APP_STATE.isNewInstall) {
                     e.preventDefault();
-                    
+
                     showMigrationProgress();
-                    
+
                     $.ajax({
                         url: APP_STATE.migrateUrl,
                         type: 'POST',

@@ -4,13 +4,12 @@ namespace App\Controllers;
 
 use App\Models\Attribute;
 use CodeIgniter\HTTP\ResponseInterface;
-use Config\Services;
 
-require_once('Secure_Controller.php');
+require_once 'Secure_Controller.php';
 
 /**
  * Attributes controls the custom attributes assigned to items
- **/
+ */
 class Attributes extends Secure_Controller
 {
     private Attribute $attribute;
@@ -24,9 +23,7 @@ class Attributes extends Secure_Controller
 
     /**
      * Gets and sends the main view for Attributes to the browser.
-     *
-     * @return string
-     **/
+     */
     public function getIndex(): string
     {
         $data['table_headers'] = get_attribute_definition_manage_table_headers();
@@ -49,9 +46,10 @@ class Attributes extends Secure_Controller
         $total_rows = $this->attribute->get_found_rows($search);
 
         $data_rows = [];
+
         foreach ($attributes->getResult() as $attribute_row) {
             $attribute_row->definition_flags = $this->get_attributes($attribute_row->definition_flags);
-            $data_rows[] = get_attribute_definition_data_row($attribute_row);
+            $data_rows[]                     = get_attribute_definition_data_row($attribute_row);
         }
 
         return $this->response->setJSON(['total' => $total_rows, 'rows' => $data_rows]);
@@ -59,7 +57,7 @@ class Attributes extends Secure_Controller
 
     /**
      * AJAX called function which saves the attribute value sent via POST by using the model save function.
-     * @return ResponseInterface
+     *
      * @noinspection PhpUnused
      */
     public function postSaveAttributeValue(): ResponseInterface
@@ -68,22 +66,22 @@ class Attributes extends Secure_Controller
             html_entity_decode($this->request->getPost('attribute_value')),
             $this->request->getPost('definition_id', FILTER_SANITIZE_NUMBER_INT),
             $this->request->getPost('item_id', FILTER_SANITIZE_NUMBER_INT) ?? false,
-            $this->request->getPost('attribute_id', FILTER_SANITIZE_NUMBER_INT) ?? false
+            $this->request->getPost('attribute_id', FILTER_SANITIZE_NUMBER_INT) ?? false,
         );
 
-        return $this->response->setJSON(['success' => $success != 0]);
+        return $this->response->setJSON(['success' => $success !== 0]);
     }
 
     /**
      * AJAX called function deleting an attribute value using the model delete function.
-     * @return ResponseInterface
+     *
      * @noinspection PhpUnused
      */
     public function postDeleteDropdownAttributeValue(): ResponseInterface
     {
         $success = $this->attribute->deleteDropdownAttributeValue(
             html_entity_decode($this->request->getPost('attribute_value')),
-            $this->request->getPost('definition_id', FILTER_SANITIZE_NUMBER_INT)
+            $this->request->getPost('definition_id', FILTER_SANITIZE_NUMBER_INT),
         );
 
         return $this->response->setJSON(['success' => $success]);
@@ -92,8 +90,6 @@ class Attributes extends Secure_Controller
     /**
      * AJAX called function which saves the attribute definition.
      *
-     * @param int $definition_id
-     * @return ResponseInterface
      * @noinspection PhpUnused
      */
     public function postSaveDefinition(int $definition_id = NO_DEFINITION_ID): ResponseInterface
@@ -108,25 +104,25 @@ class Attributes extends Secure_Controller
 
         // Validate definition_group (definition_fk) foreign key
         $definition_group_input = $this->request->getPost('definition_group');
-        $definition_fk = $this->validateDefinitionGroup($definition_group_input);
+        $definition_fk          = $this->validateDefinitionGroup($definition_group_input);
 
         if ($definition_fk === false) {
             return $this->response->setJSON([
                 'success' => false,
                 'message' => lang('Attributes.definition_invalid_group'),
-                'id'      => NEW_ENTRY
+                'id'      => NEW_ENTRY,
             ]);
         }
 
         // Save definition data
         $definition_data = [
             'definition_name'  => $this->request->getPost('definition_name'),
-            'definition_unit'  => $this->request->getPost('definition_unit') != '' ? $this->request->getPost('definition_unit') : null,
+            'definition_unit'  => $this->request->getPost('definition_unit') !== '' ? $this->request->getPost('definition_unit') : null,
             'definition_flags' => $definition_flags,
-            'definition_fk'    => $definition_fk
+            'definition_fk'    => $definition_fk,
         ];
 
-        if ($this->request->getPost('definition_type') != null) {
+        if ($this->request->getPost('definition_type') !== null) {
             $definition_data['definition_type'] = DEFINITION_TYPES[$this->request->getPost('definition_type')];
         }
 
@@ -134,7 +130,7 @@ class Attributes extends Secure_Controller
 
         if ($this->attribute->saveDefinition($definition_data, $definition_id)) {
             // New definition
-            if ($definition_id == NO_DEFINITION_ID) {
+            if ($definition_id === NO_DEFINITION_ID) {
                 $definition_values = json_decode(html_entity_decode($this->request->getPost('definition_values')));
 
                 foreach ($definition_values as $definition_value) {
@@ -144,32 +140,29 @@ class Attributes extends Secure_Controller
                 return $this->response->setJSON([
                     'success' => true,
                     'message' => lang('Attributes.definition_successful_adding') . ' ' . $definition_name,
-                    'id'      => $definition_data['definition_id']
+                    'id'      => $definition_data['definition_id'],
                 ]);
-            } else { // Existing definition
-                return $this->response->setJSON([
-                    'success' => true,
-                    'message' => lang('Attributes.definition_successful_updating') . ' ' . $definition_name,
-                    'id'      => $definition_id
-                ]);
-            }
-        } else { // Failure
+            }   // Existing definition
+
             return $this->response->setJSON([
-                'success' => false,
-                'message' => lang('Attributes.definition_error_adding_updating', [$definition_name]),
-                'id'      => NEW_ENTRY
+                'success' => true,
+                'message' => lang('Attributes.definition_successful_updating') . ' ' . $definition_name,
+                'id'      => $definition_id,
             ]);
-        }
+        }   // Failure
+
+        return $this->response->setJSON([
+            'success' => false,
+            'message' => lang('Attributes.definition_error_adding_updating', [$definition_name]),
+            'id'      => NEW_ENTRY,
+        ]);
     }
 
     /**
      * Validates a definition_group foreign key.
      * Returns the validated integer ID, null if empty, or false if invalid.
-     *
-     * @param mixed $definition_group_input
-     * @return int|null|false
      */
-    private function validateDefinitionGroup(mixed $definition_group_input): int|null|false
+    private function validateDefinitionGroup(mixed $definition_group_input): false|int|null
     {
         if ($definition_group_input === '' || $definition_group_input === null) {
             return null;
@@ -179,7 +172,7 @@ class Attributes extends Secure_Controller
 
         // Must be a positive integer, exist in attribute_definitions, and be of type GROUP
         if ($definition_group_id <= 0
-            || !$this->attribute->exists($definition_group_id)
+            || ! $this->attribute->exists($definition_group_id)
             || $this->attribute->getAttributeInfo($definition_group_id)->definition_type !== GROUP
         ) {
             return false;
@@ -189,9 +182,6 @@ class Attributes extends Secure_Controller
     }
 
     /**
-     *
-     * @param int $definition_id
-     * @return ResponseInterface
      * @noinspection PhpUnused
      */
     public function getSuggestAttribute(int $definition_id): ResponseInterface
@@ -201,54 +191,45 @@ class Attributes extends Secure_Controller
         return $this->response->setJSON($suggestions);
     }
 
-    /**
-     * @param int $row_id
-     * @return ResponseInterface
-     */
     public function getRow(int $row_id): ResponseInterface
     {
-        $attribute_definition_info = $this->attribute->getAttributeInfo($row_id);
+        $attribute_definition_info                   = $this->attribute->getAttributeInfo($row_id);
         $attribute_definition_info->definition_flags = $this->get_attributes($attribute_definition_info->definition_flags);
-        $data_row = get_attribute_definition_data_row($attribute_definition_info);
+        $data_row                                    = get_attribute_definition_data_row($attribute_definition_info);
 
         return $this->response->setJSON($data_row);
     }
 
-    /**
-     * @param int $definition_flags
-     * @return array
-     */
     private function get_attributes(int $definition_flags = 0): array
     {
         $definition_flag_names = [];
+
         foreach (Attribute::get_definition_flags() as $id => $term) {
             if ($id & $definition_flags) {
                 $definition_flag_names[$id] = lang('Attributes.' . strtolower($term) . '_visibility');
             }
         }
+
         return $definition_flag_names;
     }
 
-    /**
-     * @param int $definition_id
-     * @return string
-     */
     public function getView(int $definition_id = NO_DEFINITION_ID): string
     {
         $info = $this->attribute->getAttributeInfo($definition_id);
+
         foreach (get_object_vars($info) as $property => $value) {
-            $info->$property = $value;
+            $info->{$property} = $value;
         }
 
-        $data['definition_id'] = $definition_id;
-        $data['definition_values'] = $this->attribute->get_definition_values($definition_id);
-        $data['definition_group'] = $this->attribute->get_definitions_by_type(GROUP, $definition_id);
+        $data['definition_id']        = $definition_id;
+        $data['definition_values']    = $this->attribute->get_definition_values($definition_id);
+        $data['definition_group']     = $this->attribute->get_definitions_by_type(GROUP, $definition_id);
         $data['definition_group'][''] = lang('Common.none_selected_text');
-        $data['definition_info'] = $info;
+        $data['definition_info']      = $info;
 
-        $show_all = Attribute::SHOW_IN_ITEMS | Attribute::SHOW_IN_RECEIVINGS | Attribute::SHOW_IN_SALES;
-        $data['definition_flags'] = $this->get_attributes($show_all);
-        $selected_flags = $info->definition_flags === '' ? $show_all : $info->definition_flags;
+        $show_all                          = Attribute::SHOW_IN_ITEMS | Attribute::SHOW_IN_RECEIVINGS | Attribute::SHOW_IN_SALES;
+        $data['definition_flags']          = $this->get_attributes($show_all);
+        $selected_flags                    = $info->definition_flags === '' ? $show_all : $info->definition_flags;
         $data['selected_definition_flags'] = $this->get_attributes($selected_flags);
 
         return view('attributes/form', $data);
@@ -256,17 +237,17 @@ class Attributes extends Secure_Controller
 
     /**
      * Deletes an attribute definition
-     * @return ResponseInterface
      */
     public function postDelete(): ResponseInterface
     {
         $attributes_to_delete = $this->request->getPost('ids', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
 
-        if($this->attribute->deleteDefinitionList($attributes_to_delete)) {
+        if ($this->attribute->deleteDefinitionList($attributes_to_delete)) {
             $message = lang('Attributes.definition_successful_deleted') . ' ' . count($attributes_to_delete) . ' ' . lang('Attributes.definition_one_or_multiple');
+
             return $this->response->setJSON(['success' => true, 'message' => $message]);
-        } else {
-            return $this->response->setJSON(['success' => false, 'message' => lang('Attributes.definition_cannot_be_deleted')]);
         }
+
+        return $this->response->setJSON(['success' => false, 'message' => lang('Attributes.definition_cannot_be_deleted')]);
     }
 }

@@ -5,7 +5,7 @@ namespace Config;
 use App\Models\Appconfig;
 use CodeIgniter\Cache\CacheInterface;
 use CodeIgniter\Config\BaseConfig;
-use Config\Database;
+use Exception;
 
 /**
  * This class holds the configuration options stored from the database so that on launch those settings can be cached
@@ -14,7 +14,7 @@ use Config\Database;
  */
 class OSPOS extends BaseConfig
 {
-    public array $settings = [];
+    public array $settings     = [];
     public string $commit_sha1 = 'dev';    // TODO: Travis scripts need to be updated to replace this with the commit hash on build
     private CacheInterface $cache;
 
@@ -25,32 +25,32 @@ class OSPOS extends BaseConfig
         $this->set_settings();
     }
 
-    /**
-     * @return void
-     */
     public function set_settings(): void
     {
         $cache = $this->cache->get('settings');
 
         if ($cache) {
             $this->settings = decode_array($cache);
+
             return;
         }
 
         try {
             $db = Database::connect();
 
-            if (!$db->tableExists('app_config')) {
+            if (! $db->tableExists('app_config')) {
                 $this->settings = $this->getDefaultSettings();
+
                 return;
             }
 
             $appconfig = model(Appconfig::class);
+
             foreach ($appconfig->get_all()->getResult() as $app_config) {
                 $this->settings[$app_config->key] = $app_config->value;
             }
             $this->cache->save('settings', encode_array($this->settings));
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->settings = $this->getDefaultSettings();
         }
     }
@@ -61,13 +61,10 @@ class OSPOS extends BaseConfig
             'language'      => 'english',
             'language_code' => 'en',
             'company'       => 'Home',
-            'barcode_type'  => 'Code39'
+            'barcode_type'  => 'Code39',
         ];
     }
 
-    /**
-     * @return void
-     */
     public function update_settings(): void
     {
         $this->cache->delete('settings');

@@ -3,7 +3,6 @@
 namespace App\Controllers;
 
 use App\Libraries\Sms_lib;
-
 use App\Models\Person;
 use CodeIgniter\HTTP\ResponseInterface;
 
@@ -18,34 +17,24 @@ class Messages extends Secure_Controller
         $this->sms_lib = new Sms_lib();
     }
 
-    /**
-     * @return string
-     */
     public function getIndex(): string
     {
         return view('messages/sms');
     }
 
-    /**
-     * @param int $person_id
-     * @return string
-     */
     public function getView(int $person_id = NEW_ENTRY): string
     {
         $person = model(Person::class);
-        $info = $person->get_info($person_id);
+        $info   = $person->get_info($person_id);
 
         foreach (get_object_vars($info) as $property => $value) {
-            $info->$property = $value;
+            $info->{$property} = $value;
         }
         $data['person_info'] = $info;
 
         return view('messages/form_sms', $data);
     }
 
-    /**
-     * @return ResponseInterface
-     */
     public function send(): ResponseInterface
     {
         $phone   = $this->request->getPost('phone', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
@@ -55,16 +44,14 @@ class Messages extends Secure_Controller
 
         if ($response) {
             return $this->response->setJSON(['success' => true, 'message' => lang('Messages.successfully_sent') . ' ' . esc($phone)]);
-        } else {
-            return $this->response->setJSON(['success' => false, 'message' => lang('Messages.unsuccessfully_sent') . ' ' . esc($phone)]);
         }
+
+        return $this->response->setJSON(['success' => false, 'message' => lang('Messages.unsuccessfully_sent') . ' ' . esc($phone)]);
     }
 
     /**
      * Sends an SMS message to a user. Used in app/Views/messages/form_sms.php.
      *
-     * @param int $person_id
-     * @return ResponseInterface
      * @noinspection PhpUnused
      */
     public function send_form(int $person_id = NEW_ENTRY): ResponseInterface
@@ -78,14 +65,14 @@ class Messages extends Secure_Controller
             return $this->response->setJSON([
                 'success'   => true,
                 'message'   => lang('Messages.successfully_sent') . ' ' . esc($phone),
-                'person_id' => $person_id
-            ]);
-        } else {
-            return $this->response->setJSON([
-                'success'   => false,
-                'message'   => lang('Messages.unsuccessfully_sent') . ' ' . esc($phone),
-                'person_id' => NEW_ENTRY
+                'person_id' => $person_id,
             ]);
         }
+
+        return $this->response->setJSON([
+            'success'   => false,
+            'message'   => lang('Messages.unsuccessfully_sent') . ' ' . esc($phone),
+            'person_id' => NEW_ENTRY,
+        ]);
     }
 }

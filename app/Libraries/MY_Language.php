@@ -28,7 +28,7 @@ class MY_Language extends Language
         }
 
         // If still not found, try English
-        if ($output === null || $output === "") {
+        if ($output === null || $output === '') {
             [$file, $parsedLine] = $this->parseLine($line, 'en');
 
             $output = $this->getTranslationOutput('en', $file, $parsedLine);

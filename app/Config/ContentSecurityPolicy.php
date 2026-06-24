@@ -66,7 +66,7 @@ class ContentSecurityPolicy extends BaseConfig
         'self',
         'unsafe-inline',
         'unsafe-eval',
-        'www.google.com www.gstatic.com'
+        'www.google.com www.gstatic.com',
     ];
 
     /**

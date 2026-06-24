@@ -13,14 +13,14 @@ class Migration_add_missing_config extends Migration
     {
         log_message('info', 'Adding missing configs.');
         $image_values = [
-            ['key' => 'account_number',                    'value' => ''],  // This has no current maintenance, but it's used in Sales
-            ['key' => 'category_dropdown',                 'value' => ''],
-            ['key' => 'smtp_host',                         'value' => ''],
-            ['key' => 'smtp_user',                         'value' => ''],
-            ['key' => 'smtp_pass',                         'value' => ''],
-            ['key' => 'login_form',                        'value' => ''],
+            ['key' => 'account_number', 'value' => ''],  // This has no current maintenance, but it's used in Sales
+            ['key' => 'category_dropdown', 'value' => ''],
+            ['key' => 'smtp_host', 'value' => ''],
+            ['key' => 'smtp_user', 'value' => ''],
+            ['key' => 'smtp_pass', 'value' => ''],
+            ['key' => 'login_form', 'value' => ''],
             ['key' => 'receiving_calculate_average_price', 'value' => ''],
-            ['key' => 'payment_message',                   'value' => '']
+            ['key' => 'payment_message', 'value' => ''],
         ];
 
         $this->db->table('app_config')->ignore(true)->insertBatch($image_values);

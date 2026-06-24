@@ -4,8 +4,8 @@ namespace App\Libraries;
 
 use App\Models\Tokens\Token;
 use Config\OSPOS;
-use IntlDateFormatter;
 use DateTime;
+use IntlDateFormatter;
 
 /**
  * Token library
@@ -49,15 +49,16 @@ class Token_lib
         '%u' => 'e',
         '%w' => 'c',
     ];
-
     private array $validStrftimeFormats = [
         'a', 'A', 'b', 'B', 'c', 'd', 'D', 'e', 'F', 'g', 'G',
         'h', 'H', 'I', 'j', 'm', 'M', 'n', 'p', 'P', 'r', 'R',
-        'S', 't', 'T', 'u', 'U', 'V', 'w', 'W', 'x', 'X', 'y', 'Y', 'z', 'Z'
+        'S', 't', 'T', 'u', 'U', 'V', 'w', 'W', 'x', 'X', 'y', 'Y', 'z', 'Z',
     ];
 
     /**
      * Expands all the tokens found in a given text string and returns the results.
+     *
+     * @param mixed $save
      */
     public function render(string $tokened_text, array $tokens = [], $save = true): string
     {
@@ -71,7 +72,7 @@ class Token_lib
             return $tokened_text;
         }
 
-        $token_values = [];
+        $token_values      = [];
         $tokens_to_replace = [];
         $this->generate($token_tree, $tokens, $tokens_to_replace, $token_values, $save);
 
@@ -86,7 +87,7 @@ class Token_lib
             IntlDateFormatter::FULL,
             null,
             null,
-            ''
+            '',
         );
 
         $dateTime = new DateTime();
@@ -115,16 +116,18 @@ class Token_lib
                 if ($formatChar === 'c') {
                     $formatter->setPattern('yyyy-MM-dd HH:mm:ss');
                     $result = $formatter->format($dateTime);
+
                     return $result !== false ? $result : $match[0];
                 }
 
                 if ($formatChar === 'x') {
                     $formatter->setPattern('yyyy-MM-dd');
                     $result = $formatter->format($dateTime);
+
                     return $result !== false ? $result : $match[0];
                 }
 
-                if (!in_array($formatChar, $this->validStrftimeFormats, true)) {
+                if (! in_array($formatChar, $this->validStrftimeFormats, true)) {
                     return $match[0];
                 }
 
@@ -139,7 +142,7 @@ class Token_lib
 
                 return $result !== false ? $result : $match[0];
             },
-            $text
+            $text,
         );
     }
 
@@ -155,10 +158,11 @@ class Token_lib
                 \}             # ] - pattern end
                 /x', $text, $matches);
 
-        $tokens = $matches[1];
+        $tokens  = $matches[1];
         $lengths = $matches[2];
 
         $token_tree = [];
+
         for ($i = 0; $i < count($tokens); $i++) {
             $token_tree[$tokens[$i]][$lengths[$i]] = $matches[0][$i];
         }
@@ -168,17 +172,17 @@ class Token_lib
 
     public function parse_barcode(?string &$quantity, ?string &$price, ?string &$item_id_or_number_or_item_kit_or_receipt): void
     {
-        $config = config(OSPOS::class)->settings;
+        $config          = config(OSPOS::class)->settings;
         $barcode_formats = json_decode($config['barcode_formats']);
-        $barcode_tokens = Token::get_barcode_tokens();
+        $barcode_tokens  = Token::get_barcode_tokens();
 
-        if (!empty($barcode_formats)) {
+        if (! empty($barcode_formats)) {
             foreach ($barcode_formats as $barcode_format) {
-                $parsed_results = $this->parse($item_id_or_number_or_item_kit_or_receipt, $barcode_format, $barcode_tokens);
-                $quantity = (isset($parsed_results['W'])) ? (int) $parsed_results['W'] / 1000 : 1;
+                $parsed_results                           = $this->parse($item_id_or_number_or_item_kit_or_receipt, $barcode_format, $barcode_tokens);
+                $quantity                                 = (isset($parsed_results['W'])) ? (int) $parsed_results['W'] / 1000 : 1;
                 $item_id_or_number_or_item_kit_or_receipt = (isset($parsed_results['I'])) ?
                     $parsed_results['I'] : $item_id_or_number_or_item_kit_or_receipt;
-                $price = (isset($parsed_results['P'])) ? (double) $parsed_results['P'] : null;
+                $price = (isset($parsed_results['P'])) ? (float) $parsed_results['P'] : null;
             }
         } else {
             $quantity = 1;
@@ -190,23 +194,24 @@ class Token_lib
         $token_tree = $this->scan($pattern);
 
         $found_tokens = [];
+
         foreach ($token_tree as $token_id => $token_length) {
             foreach ($tokens as $token) {
-                if ($token->token_id() == $token_id) {
+                if ($token->token_id() === $token_id) {
                     $found_tokens[] = $token;
-                    $keys = array_keys($token_length);
-                    $length = array_shift($keys);
-                    $pattern = str_replace(array_shift($token_length), "({$token->get_value()}{" . $length . "})", $pattern);
+                    $keys           = array_keys($token_length);
+                    $length         = array_shift($keys);
+                    $pattern        = str_replace(array_shift($token_length), "({$token->get_value()}{" . $length . '})', $pattern);
                 }
             }
         }
 
         $results = [];
 
-        if (preg_match("/$pattern/", $string, $matches)) {
+        if (preg_match("/{$pattern}/", $string, $matches)) {
             foreach ($found_tokens as $token) {
-                $index = array_search($token, $found_tokens);
-                $match = $matches[$index + 1];
+                $index                       = array_search($token, $found_tokens, true);
+                $match                       = $matches[$index + 1];
                 $results[$token->token_id()] = $match;
             }
         }
@@ -221,7 +226,7 @@ class Token_lib
 
             foreach ($token_info as $length => $token_spec) {
                 $tokens_to_replace[] = $token_spec;
-                if (!empty($length)) {
+                if (! empty($length)) {
                     $token_values[] = str_pad($token_value, $length, '0', STR_PAD_LEFT);
                 } else {
                     $token_values[] = $token_value;
@@ -233,7 +238,7 @@ class Token_lib
     private function resolve_token($token_code, array $tokens = [], bool $save = true): string
     {
         foreach (array_merge($tokens, Token::get_tokens()) as $token) {
-            if ($token->token_id() == $token_code) {
+            if ($token->token_id() === $token_code) {
                 return $token->get_value($save);
             }
         }

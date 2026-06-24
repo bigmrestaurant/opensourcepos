@@ -4,27 +4,23 @@ namespace App\Libraries;
 
 use CodeIgniter\Database\MigrationRunner;
 use Config\Database;
+use Exception;
 use stdClass;
 
 class MY_Migration extends MigrationRunner
 {
-    /**
-     * @return bool
-     */
     public function is_latest(): bool
     {
-        $latest_version = $this->get_latest_migration();
+        $latest_version  = $this->get_latest_migration();
         $current_version = $this->get_current_version();
 
         return $latest_version === $current_version;
     }
 
-    /**
-     * @return int
-     */
     public function get_latest_migration(): int
     {
         $migrations = $this->findMigrations();
+
         return (int) basename(end($migrations)->version);
     }
 
@@ -41,9 +37,10 @@ class MY_Migration extends MigrationRunner
                 $builder = $db->table('migrations');
                 $builder->select('version')->orderBy('version', 'DESC')->limit(1);
                 $result = $builder->get()->getRow();
+
                 return $result ? (int) $result->version : 0;
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Database not available yet (e.g. fresh install before schema).
             // Catches mysqli_sql_exception which is not a DatabaseException.
             return 0;
@@ -52,9 +49,6 @@ class MY_Migration extends MigrationRunner
         return 0;
     }
 
-    /**
-     * @return void
-     */
     public function migrate_to_ci4(): void
     {
         $ci3_migrations_version = $this->ci3_migrations_exists();
@@ -71,13 +65,14 @@ class MY_Migration extends MigrationRunner
     private function ci3_migrations_exists(): bool|string
     {
         try {
-            if ($this->db->tableExists('migrations') && !$this->db->fieldExists('id', 'migrations')) {
+            if ($this->db->tableExists('migrations') && ! $this->db->fieldExists('id', 'migrations')) {
                 $builder = $this->db->table('migrations');
                 $builder->select('version');
                 $result = $builder->get()->getRow();
+
                 return $result ? $result->version : false;
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Database not available yet (e.g. fresh install before schema).
             // Catches mysqli_sql_exception which is not a DatabaseException.
         }
@@ -85,10 +80,6 @@ class MY_Migration extends MigrationRunner
         return false;
     }
 
-    /**
-     * @param string $ci3_migrations_version
-     * @return void
-     */
     private function migrate_table(string $ci3_migrations_version): void
     {
         $this->convert_table();
@@ -96,46 +87,37 @@ class MY_Migration extends MigrationRunner
         $available_migrations = $this->get_available_migrations();
 
         foreach ($available_migrations as $version => $path) {
-            if ($version > (int)$ci3_migrations_version) {
+            if ($version > (int) $ci3_migrations_version) {
                 break;
             }
 
-            $migration = new stdClass();
-            $migration->version = $version;
-            $migration->class = $path;
+            $migration            = new stdClass();
+            $migration->version   = $version;
+            $migration->class     = $path;
             $migration->namespace = 'App';
 
             $this->addHistory($migration, 1);
         }
     }
 
-    /**
-     * @return void
-     */
     public function up(): void
     {
         // TODO: Implement up() method.
     }
 
-    /**
-     * @return void
-     */
     public function down(): void
     {
         // TODO: Implement down() method.
     }
 
-    /**
-     * @return array
-     */
     private function get_available_migrations(): array
     {
-        $migrations = $this->findMigrations();
+        $migrations          = $this->findMigrations();
         $exploded_migrations = [];
 
         foreach ($migrations as $migration) {
             $version = substr($migration->uid, 0, 14);
-            $path = substr($migration->uid, 14);
+            $path    = substr($migration->uid, 14);
 
             $exploded_migrations[$version] = $path;
         }
@@ -147,7 +129,6 @@ class MY_Migration extends MigrationRunner
 
     /**
      * Converts the CI3 migrations database to CI4
-     * @return void
      */
     public function convert_table(): void
     {
@@ -156,5 +137,4 @@ class MY_Migration extends MigrationRunner
 
         $this->ensureTable();
     }
-
 }

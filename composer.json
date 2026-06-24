@@ -28,6 +28,7 @@
         "php": "^8.2",
         "ext-intl": "*",
         "codeigniter4/framework": "4.7.2",
+        "codeigniter4/tasks": "^1.0",
         "dompdf/dompdf": "^2.0.3",
         "ezyang/htmlpurifier": "^4.17",
         "laminas/laminas-escaper": "2.18.0",

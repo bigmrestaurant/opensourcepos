@@ -2,10 +2,10 @@
 /**
  * @var string $title
  * @var string $subtitle
- * @var array $summary_data
- * @var array $headers
- * @var array $data
- * @var array $config
+ * @var array  $summary_data
+ * @var array  $headers
+ * @var array  $data
+ * @var array  $config
  */
 ?>
 
@@ -22,7 +22,7 @@
 <div id="toolbar">
     <div class="pull-left form-inline" role="toolbar">
         <button id="toggleCostProfitButton" class="btn btn-default btn-sm print_hide">
-            <?php echo lang('Reports.toggle_cost_and_profit'); ?>
+            <?= lang('Reports.toggle_cost_and_profit'); ?>
         </button>
     </div>
 </div>
@@ -34,15 +34,15 @@
 <div id="report_summary">
     <?php
     foreach ($summary_data as $name => $value) {
-        if ($name == "total_quantity") {
+        if ($name === 'total_quantity') {
             ?>
-            <div class="summary_row"><?= lang("Reports.$name") . ": " . esc($value) ?></div>
+            <div class="summary_row"><?= lang("Reports.{$name}") . ': ' . esc($value) ?></div>
         <?php } else { ?>
-            <div class="summary_row"><?= lang("Reports.$name") . ': ' . to_currency($value) ?></div>
+            <div class="summary_row"><?= lang("Reports.{$name}") . ': ' . to_currency($value) ?></div>
             <?php
         }
     }
-    ?>
+?>
 </div>
 
 <script type="text/javascript">

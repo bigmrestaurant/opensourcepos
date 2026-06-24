@@ -2,7 +2,6 @@
 /**
  * @var array $keyboardShortcuts
  */
-
 $keyboardShortcuts ??= [];
 
 $shortcut_labels = [
@@ -15,7 +14,7 @@ $shortcut_labels = [
     'payment'   => lang('Sales.key_payment'),
     'complete'  => lang('Sales.key_finish_sale'),
     'finish'    => lang('Sales.key_finish_quote'),
-    'help'      => lang('Sales.key_help_modal')
+    'help'      => lang('Sales.key_help_modal'),
 ];
 ?>
 

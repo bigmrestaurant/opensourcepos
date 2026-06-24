@@ -8,12 +8,12 @@
  * Filter restoration from URL is handled server-side in the controller.
  *
  * @param array $options Additional filter options
- *   - 'additional_params': Array of additional parameter names to track (e.g., ['stock_location'])
- *   - 'filter_select_id': Filter multiselect element ID (default: 'filters')
+ *                       - 'additional_params': Array of additional parameter names to track (e.g., ['stock_location'])
+ *                       - 'filter_select_id': Filter multiselect element ID (default: 'filters')
  */
-$options = $options ?? [];
+$options ??= [];
 $additional_params = $options['additional_params'] ?? [];
-$filter_select_id = $options['filter_select_id'] ?? 'filters';
+$filter_select_id  = $options['filter_select_id'] ?? 'filters';
 ?>
 
 <script type="text/javascript">

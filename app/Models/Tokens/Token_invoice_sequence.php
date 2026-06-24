@@ -7,24 +7,17 @@ use ReflectionException;
 
 /**
  * Token_invoice_sequence class
- **/
-
+ */
 class Token_invoice_sequence extends Token
 {
     private Appconfig $appconfig;
 
-    /**
-     * @param string $value
-     */
     public function __construct(string $value = '')
     {
         parent::__construct($value);
         $this->appconfig = model(Appconfig::class);
     }
 
-    /**
-     * @return string
-     */
     public function token_id(): string
     {
         return 'ISEQ';
@@ -38,6 +31,7 @@ class Token_invoice_sequence extends Token
         if (empty($this->value)) {
             return $this->appconfig->acquire_next_invoice_sequence($save);
         }
+
         return $this->value;
-     }
+    }
 }

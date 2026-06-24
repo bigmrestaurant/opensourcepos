@@ -3,7 +3,7 @@
  * @var string $title
  * @var string $subtitle
  * @var string $chart_type
- * @var array $summary_data_1
+ * @var array  $summary_data_1
  */
 ?>
 
@@ -23,7 +23,7 @@
     <div class="pull-left form-inline" role="toolbar">
         <!-- Toggle Button -->
         <button id="toggleCostProfitButton" class="btn btn-default btn-sm print_hide">
-            <?php echo lang('Reports.toggle_cost_and_profit'); ?>
+            <?= lang('Reports.toggle_cost_and_profit'); ?>
         </button>
     </div>
 </div>
@@ -32,7 +32,7 @@
 
 <div id="chart_report_summary">
     <?php foreach ($summary_data_1 as $name => $value) { ?>
-        <div class="summary_row"><?= lang("Reports.$name") . ': ' . esc(to_currency($value)) ?></div>
+        <div class="summary_row"><?= lang("Reports.{$name}") . ': ' . esc(to_currency($value)) ?></div>
     <?php } ?>
 </div>
 

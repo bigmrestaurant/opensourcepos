@@ -18,5 +18,7 @@ class Migration_modify_attr_links_constraint extends Migration
     /**
      * Revert a migration step.
      */
-    public function down(): void {}
+    public function down(): void
+    {
+    }
 }

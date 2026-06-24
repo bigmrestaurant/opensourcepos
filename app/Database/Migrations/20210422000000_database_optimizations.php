@@ -2,10 +2,9 @@
 
 namespace App\Database\Migrations;
 
+use App\Models\Attribute;
 use CodeIgniter\Database\Migration;
 use CodeIgniter\Database\ResultInterface;
-use App\Models\Attribute;
-use Config\Database;
 use Config\OSPOS;
 use DateTime;
 
@@ -75,7 +74,7 @@ class Migration_database_optimizations extends Migration
             $attributeLinks = $builder->get();
 
             if ($attributeLinks) {
-                $builder = $this->db->table('attribute_links');
+                $builder        = $this->db->table('attribute_links');
                 $attributeLinks = $attributeLinks->getResultArray() ?: [];
 
                 foreach ($attributeLinks as $attributeLink) {
@@ -87,8 +86,9 @@ class Migration_database_optimizations extends Migration
                         case DECIMAL:
                             $value = $attributeValue['attribute_decimal'];
                             break;
+
                         case DATE:
-                            $config = config(OSPOS::class)->settings;
+                            $config        = config(OSPOS::class)->settings;
                             $attributeDate = DateTime::createFromFormat('Y-m-d', (string) $attributeValue['attribute_date']);
 
                             if ($attributeDate === false) {
@@ -102,6 +102,7 @@ class Migration_database_optimizations extends Migration
                                 $value = $attributeDate->format($dateFormat);
                             }
                             break;
+
                         default:
                             $value = $attributeValue['attribute_value'];
                             break;
@@ -128,9 +129,9 @@ class Migration_database_optimizations extends Migration
         $column = 'attribute_' . strtolower($attributeType);
 
         $builder = $this->db->table('attribute_values');
-        $builder->select("$column");
+        $builder->select("{$column}");
         $builder->groupBy($column);
-        $builder->having("COUNT($column) > 1");
+        $builder->having("COUNT({$column}) > 1");
         $duplicatedValues = $builder->get();
 
         foreach ($duplicatedValues->getResultArray() as $duplicatedValue) {
@@ -142,7 +143,7 @@ class Migration_database_optimizations extends Migration
             $builder = $this->db->table('attribute_values');
             $builder->select('attribute_id');
             $builder->where($column, $duplicatedValue[$column]);
-            $builder->where("attribute_id IN ($subquery)", null, false);
+            $builder->where("attribute_id IN ({$subquery})", null, false);
             $attributeIdsToFix = $builder->get();
 
             $this->reassignDuplicateAttributeValues($attributeIdsToFix);
@@ -158,7 +159,7 @@ class Migration_database_optimizations extends Migration
      */
     private function reassignDuplicateAttributeValues(ResultInterface $attributeIdsToFix): void
     {
-        $attributeIds = $attributeIdsToFix->getResultArray();
+        $attributeIds      = $attributeIdsToFix->getResultArray();
         $retainAttributeId = $attributeIds[0]['attribute_id'];
 
         foreach ($attributeIds as $attributeId) {
@@ -178,5 +179,7 @@ class Migration_database_optimizations extends Migration
     /**
      * Revert a migration step.
      */
-    public function down(): void {}
+    public function down(): void
+    {
+    }
 }

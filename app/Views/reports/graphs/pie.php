@@ -2,7 +2,7 @@
 /**
  * @var array $labels_1
  * @var array $series_data_1
- * @var bool $show_currency
+ * @var bool  $show_currency
  * @var array $config
  */
 ?>
@@ -33,17 +33,17 @@
 
         <?php
             $currency_symbol = esc($config['currency_symbol'], 'js');
-            $currency_prefix = '';
-            $currency_suffix = '';
+$currency_prefix             = '';
+$currency_suffix             = '';
 
-            if ($show_currency) {
-                if (is_right_side_currency_symbol()) {
-                    $currency_suffix = $currency_symbol;
-                } else {
-                    $currency_prefix = $currency_symbol;
-                }
-            }
-        ?>
+if ($show_currency) {
+    if (is_right_side_currency_symbol()) {
+        $currency_suffix = $currency_symbol;
+    } else {
+        $currency_prefix = $currency_symbol;
+    }
+}
+?>
 
         plugins: [
             Chartist.plugins.tooltip({

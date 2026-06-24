@@ -1,10 +1,10 @@
 <?php
 /**
- * @var string $controller_name
- * @var string $table_headers
- * @var array $filters
- * @var array $selected_filters
- * @var array $config
+ * @var string      $controller_name
+ * @var string      $table_headers
+ * @var array       $filters
+ * @var array       $selected_filters
+ * @var array       $config
  * @var string|null $start_date
  * @var string|null $end_date
  */
@@ -76,7 +76,7 @@
     <button onclick="printdoc()" class="btn btn-info btn-sm pull-right">
         <span class="glyphicon glyphicon-print">&nbsp;</span><?= lang('Common.print') ?>
     </button>
-    <?= anchor("sales", '<span class="glyphicon glyphicon-shopping-cart">&nbsp;</span>' . lang('Sales.register'), ['class' => 'btn btn-info btn-sm pull-right', 'id' => 'show_sales_button']) ?>
+    <?= anchor('sales', '<span class="glyphicon glyphicon-shopping-cart">&nbsp;</span>' . lang('Sales.register'), ['class' => 'btn btn-info btn-sm pull-right', 'id' => 'show_sales_button']) ?>
 </div>
 
 <div id="toolbar">
@@ -92,7 +92,7 @@
             'class'                     => 'selectpicker show-menu-arrow',
             'data-selected-text-format' => 'count > 1',
             'data-style'                => 'btn-default btn-sm',
-            'data-width'                => 'fit'
+            'data-width'                => 'fit',
         ]) ?>
     </div>
 </div>
