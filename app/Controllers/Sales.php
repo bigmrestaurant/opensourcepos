@@ -508,8 +508,8 @@ class Sales extends Secure_Controller
                 $amount_tendered = parse_decimals($this->request->getPost('amount_tendered'));
                 $this->sale_lib->add_payment($payment_type, $amount_tendered);
                 $payment_added          = true;
-                $cash_adjustment_amount = $amount_due - $sales_total;
-                if ($cash_adjustment_amount !== 0) {
+                $cash_adjustment_amount = bcsub($amount_due, $sales_total, totals_decimals());
+                if (bccomp($cash_adjustment_amount, '0', totals_decimals()) !== 0) {
                     $this->session->set('cash_mode', CASH_MODE_TRUE);
                     $this->sale_lib->add_payment(lang('Sales.cash_adjustment'), $cash_adjustment_amount, CASH_ADJUSTMENT_TRUE);
                 }
