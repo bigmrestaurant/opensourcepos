@@ -1294,10 +1294,9 @@ class Sales extends Secure_Controller
             $data['warning'] = $flashWarning;
         }
 
-        $sale_id = $this->session->get('sale_id');    // TODO: This variable is never used
+        $sale_id = $this->sale_lib->get_sale_id();
 
-        if ($sale_id === '') {
-            $sale_id = NEW_ENTRY;
+        if ($sale_id === NEW_ENTRY) {
             $this->session->set('sale_id', NEW_ENTRY);
         }
         $cash_rounding = $this->sale_lib->reset_cash_rounding();

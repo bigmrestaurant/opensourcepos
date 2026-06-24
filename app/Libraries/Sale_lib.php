@@ -1229,7 +1229,13 @@ class Sale_lib
 
     public function get_sale_id(): int
     {
-        return $this->session->get('sale_id');
+        $saleId = $this->session->get('sale_id');
+
+        if ($saleId === null || $saleId === '') {
+            return NEW_ENTRY;
+        }
+
+        return (int) $saleId;
     }
 
     public function clear_all(): void
