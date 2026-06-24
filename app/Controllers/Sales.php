@@ -774,7 +774,7 @@ class Sales extends Secure_Controller
         $data['quote_number']           = $quote_number;
         $customer_info                  = $this->_load_customer_data($customer_id, $data);
 
-        if ($customer_info !== null) {
+        if (is_object($customer_info)) {
             $data['customer_comments'] = $customer_info->comments;
             $data['tax_id']            = $customer_info->tax_id;
         }
@@ -1118,7 +1118,7 @@ class Sales extends Secure_Controller
 
     private function _load_customer_data(int $customer_id, array &$data, bool $stats = false): array|stdClass|string|null    // TODO: Hungarian notation
     {
-        $customer_info = '';
+        $customer_info = null;
 
         if ($customer_id !== NEW_ENTRY) {
             $customer_info       = $this->customer->get_info($customer_id);
