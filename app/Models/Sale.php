@@ -759,10 +759,10 @@ class Sale extends Model
         foreach ($sales as $sale) {
             $saleId = (int) $sale['sale_id'];
 
-            $items = $this->db->table('sales_items si')
-                ->select('i.item_number, i.name, si.item_unit_price AS price, si.quantity_purchased AS quantity, si.discount_percent AS discount')
-                ->join('items i', 'i.item_id = si.item_id')
-                ->where('si.sale_id', $saleId)
+            $items = $this->db->table('sales_items')
+                ->select('items.item_number, items.name, sales_items.item_unit_price AS price, sales_items.quantity_purchased AS quantity, sales_items.discount')
+                ->join('items', 'items.item_id = sales_items.item_id')
+                ->where('sales_items.sale_id', $saleId)
                 ->get()
                 ->getResultArray();
 
