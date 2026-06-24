@@ -168,19 +168,22 @@ if ($employee->has_grant('reports_sales', session('person_id'))) {
             <?php
             } else {
                 foreach (array_reverse($cart, true) as $line => $item) {
+                    $cartFormId    = "cart_{$line}";
+                    $cartFormField = ['form' => $cartFormId];
                     ?>
-                    <?= form_open("{$controller_name}/editItem/{$line}", ['class' => 'form-horizontal', 'id' => "cart_{$line}"]) ?>
+                    <?= form_open("{$controller_name}/editItem/{$line}", ['class' => 'form-horizontal', 'id' => $cartFormId]) ?>
+                    <?= form_close() ?>
                         <tr>
                             <td>
                                 <?= anchor("{$controller_name}/deleteItem/{$line}", '<span class="glyphicon glyphicon-trash"></span>');
-                    echo form_hidden('location', (string) $item['item_location']);
-                    echo form_input(['type' => 'hidden', 'name' => 'item_id', 'value' => $item['item_id']]);
+                    echo form_input(array_merge($cartFormField, ['type' => 'hidden', 'name' => 'location', 'value' => (string) $item['item_location']]));
+                    echo form_input(array_merge($cartFormField, ['type' => 'hidden', 'name' => 'item_id', 'value' => $item['item_id']]));
                     ?>
                             </td>
                             <?php if ($item['item_type'] === ITEM_TEMP) { ?>
-                                <td><?= form_input(['name' => 'item_number', 'id' => 'item_number', 'class' => 'form-control input-sm', 'value' => $item['item_number'], 'tabindex' => ++$tabindex]) ?></td>
+                                <td><?= form_input(array_merge($cartFormField, ['name' => 'item_number', 'id' => 'item_number', 'class' => 'form-control input-sm', 'value' => $item['item_number'], 'tabindex' => ++$tabindex])) ?></td>
                                 <td style="text-align: center;">
-                                    <?= form_input(['name' => 'name', 'id' => 'name', 'class' => 'form-control input-sm', 'value' => $item['name'], 'tabindex' => ++$tabindex]) ?>
+                                    <?= form_input(array_merge($cartFormField, ['name' => 'name', 'id' => 'name', 'class' => 'form-control input-sm', 'value' => $item['name'], 'tabindex' => ++$tabindex])) ?>
                                 </td>
                             <?php } else { ?>
                                 <td><?= esc($item['item_number']) ?></td>
@@ -195,10 +198,10 @@ if ($employee->has_grant('reports_sales', session('person_id'))) {
                             <td>
                                 <?php
                                 if ($items_module_allowed && $change_price) {
-                                    echo form_input(['name' => 'price', 'class' => 'form-control input-sm', 'value' => to_currency_no_money($item['price']), 'tabindex' => ++$tabindex, 'onClick' => 'this.select();']);
+                                    echo form_input(array_merge($cartFormField, ['name' => 'price', 'class' => 'form-control input-sm cart-line-field', 'value' => to_currency_no_money($item['price']), 'tabindex' => ++$tabindex, 'onClick' => 'this.select();']));
                                 } else {
                                     echo to_currency($item['price']);
-                                    echo form_hidden('price', to_currency_no_money($item['price']));
+                                    echo form_input(array_merge($cartFormField, ['type' => 'hidden', 'name' => 'price', 'value' => to_currency_no_money($item['price'])]));
                                 }
                     ?>
                             </td>
@@ -207,9 +210,9 @@ if ($employee->has_grant('reports_sales', session('person_id'))) {
                                 <?php
                     if ($item['is_serialized']) {
                         echo to_quantity_decimals($item['quantity']);
-                        echo form_hidden('quantity', $item['quantity']);
+                        echo form_input(array_merge($cartFormField, ['type' => 'hidden', 'name' => 'quantity', 'value' => $item['quantity']]));
                     } else {
-                        echo form_input(['name' => 'quantity', 'class' => 'form-control input-sm', 'value' => to_quantity_decimals($item['quantity']), 'tabindex' => ++$tabindex, 'onClick' => 'this.select();']);
+                        echo form_input(array_merge($cartFormField, ['name' => 'quantity', 'class' => 'form-control input-sm cart-line-field', 'value' => to_quantity_decimals($item['quantity']), 'tabindex' => ++$tabindex, 'onClick' => 'this.select();']));
                     }
                     ?>
                             </td>
@@ -217,7 +220,7 @@ if ($employee->has_grant('reports_sales', session('person_id'))) {
                             <td>
                                 <?php
                     if ($item['item_type'] === ITEM_AMOUNT_ENTRY) {    // TODO: === ?
-                        echo form_input(['name' => 'discounted_total', 'class' => 'form-control input-sm', 'value' => to_currency_no_money($item['discounted_total']), 'tabindex' => ++$tabindex, 'onClick' => 'this.select();']);
+                        echo form_input(array_merge($cartFormField, ['name' => 'discounted_total', 'class' => 'form-control input-sm cart-line-field', 'value' => to_currency_no_money($item['discounted_total']), 'tabindex' => ++$tabindex, 'onClick' => 'this.select();']));
                     } else {
                         echo to_currency($item['discounted_total']);
                     }
@@ -225,7 +228,7 @@ if ($employee->has_grant('reports_sales', session('person_id'))) {
                             </td>
 
                             <td>
-                                <a href="javascript:document.getElementById('<?= "cart_{$line}" ?>').submit();" title="<?= lang(ucfirst($controller_name) . '.update') ?>">
+                                <a href="javascript:document.getElementById('<?= esc($cartFormId, 'js') ?>').submit();" title="<?= lang(ucfirst($controller_name) . '.update') ?>">
                                     <span class="glyphicon glyphicon-refresh"></span>
                                 </a>
                             </td>
@@ -239,9 +242,9 @@ if ($employee->has_grant('reports_sales', session('person_id'))) {
                         ?>
                         <tr>
                             <?php if ($item['item_type'] === ITEM_TEMP) { ?>
-                                <td><?= form_input(['type' => 'hidden', 'name' => 'item_id', 'value' => $item['item_id']]) ?></td>
+                                <td><?= form_input(array_merge($cartFormField, ['type' => 'hidden', 'name' => 'item_id', 'value' => $item['item_id']])) ?></td>
                                 <td style="text-align: center;" colspan="5">
-                                    <?= form_input(['name' => 'item_description', 'id' => 'item_description', 'class' => 'form-control input-sm', 'value' => $item['description'], 'tabindex' => ++$tabindex]) ?>
+                                    <?= form_input(array_merge($cartFormField, ['name' => 'item_description', 'id' => 'item_description', 'class' => 'form-control input-sm', 'value' => $item['description'], 'tabindex' => ++$tabindex])) ?>
                                 </td>
                                 <td> </td>
                             <?php } else { ?>
@@ -253,13 +256,13 @@ if ($employee->has_grant('reports_sales', session('person_id'))) {
                                 <td colspan="2" style="text-align: left;">
                                     <?php
                                     if ($item['allow_alt_description']) {
-                                        echo form_input(['name' => 'description', 'class' => 'form-control input-sm', 'value' => $item['description'], 'onClick' => 'this.select();']);
+                                        echo form_input(array_merge($cartFormField, ['name' => 'description', 'class' => 'form-control input-sm cart-line-field', 'value' => $item['description'], 'onClick' => 'this.select();']));
                                     } else {
                                         if ($item['description'] !== '') {
                                             echo esc($item['description']);
-                                            echo form_hidden('description', $item['description']);
+                                            echo form_input(array_merge($cartFormField, ['type' => 'hidden', 'name' => 'description', 'value' => $item['description']]));
                                         } else {
-                                            echo form_hidden('description', '');
+                                            echo form_input(array_merge($cartFormField, ['type' => 'hidden', 'name' => 'description', 'value' => '']));
                                         }
                                     }
                                 ?>
@@ -275,19 +278,18 @@ if ($employee->has_grant('reports_sales', session('person_id'))) {
                                 <td colspan="3" style="text-align: left;">
                                     <?php
                                 if ($item['is_serialized']) {
-                                    echo form_input(['name' => 'serialnumber', 'class' => 'form-control input-sm', 'value' => $item['serialnumber'], 'onClick' => 'this.select();']);
+                                    echo form_input(array_merge($cartFormField, ['name' => 'serialnumber', 'class' => 'form-control input-sm cart-line-field', 'value' => $item['serialnumber'], 'onClick' => 'this.select();']));
                                 } else {
-                                    echo form_hidden('serialnumber', '');
+                                    echo form_input(array_merge($cartFormField, ['type' => 'hidden', 'name' => 'serialnumber', 'value' => '']));
                                 }
                                 ?>
                                 </td>
                             <?php } ?>
                         </tr>
                         <?php } else { ?>
-                            <?= form_hidden('description', '') ?>
-                            <?= form_hidden('serialnumber', '') ?>
+                            <?= form_input(array_merge($cartFormField, ['type' => 'hidden', 'name' => 'description', 'value' => ''])) ?>
+                            <?= form_input(array_merge($cartFormField, ['type' => 'hidden', 'name' => 'serialnumber', 'value' => ''])) ?>
                         <?php } ?>
-                    <?= form_close() ?>
             <?php
                 }
             }
@@ -862,9 +864,34 @@ if ($employee->has_grant('reports_sales', session('person_id'))) {
         bigm_update_payment_tax();
 <?php } ?>
 
-        $('#cart_contents input').keypress(function(event) {
-            if (event.which == 13) {
-                $(this).closest('form').submit();
+        function submitCartItemForm($input) {
+            var formId = $input.attr('form');
+
+            if (formId) {
+                var form = document.getElementById(formId);
+
+                if (form) {
+                    form.submit();
+
+                    return;
+                }
+            }
+
+            var $form = $input.closest('form');
+
+            if (! $form.length) {
+                $form = $input.parents('tr').prevAll('form:first');
+            }
+
+            if ($form.length) {
+                $form.submit();
+            }
+        }
+
+        $('#cart_contents .cart-line-field').on('keydown', function(event) {
+            if (event.key === 'Enter' || event.which === 13) {
+                event.preventDefault();
+                submitCartItemForm($(this));
             }
         });
 
@@ -907,8 +934,8 @@ if ($employee->has_grant('reports_sales', session('person_id'))) {
             }
         }
 
-        $('[name="price"],[name="quantity"],[name="description"],[name="serialnumber"],[name="discounted_total"]').change(function() {
-            $(this).closest('form').submit();
+        $('#cart_contents .cart-line-field').on('change', function() {
+            submitCartItemForm($(this));
         });
 
         // BigM: bill-level discount and service charge recompute the totals, so
