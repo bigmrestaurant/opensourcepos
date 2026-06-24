@@ -30,3 +30,6 @@ mkdir -p writable/cache writable/logs writable/session writable/uploads writable
 chmod -R 755 writable
 
 echo "Bootstrap complete. Ensure .env is configured, then visit https://pos.bigmrestaurant.com"
+echo ""
+echo "Cron (hPanel → Custom, every minute):"
+echo "  /bin/sh ${ROOT}/deploy/tasks-run.sh"
