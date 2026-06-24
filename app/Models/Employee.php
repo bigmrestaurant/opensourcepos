@@ -411,7 +411,7 @@ class Employee extends Person
     {
         $personId = $this->session->get('person_id');
 
-        return is_int($personId) && $personId > 0;
+        return !empty($personId) && (int) $personId > 0;
     }
 
     /**
