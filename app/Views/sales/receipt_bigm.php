@@ -202,7 +202,7 @@ $receiptFontSize = max(1, (int) ($config['receipt_font_size'] ?? 12));
         <tbody>
         <?php
         foreach ($cart as $item) {
-            if ($item['print_option'] === PRINT_YES) {
+            if ((int) $item['print_option'] === PRINT_YES) {
                 ?>
                 <tr>
                     <td style="word-break:break-word;"><?= esc($item['name']) ?></td>
@@ -226,14 +226,14 @@ $receiptFontSize = max(1, (int) ($config['receipt_font_size'] ?? 12));
             </tr>
         <?php } ?>
 
-        <?php if ((float) ($service_charge ?? 0) !== 0) { ?>
+        <?php if ((float) ($service_charge ?? 0) != 0) { ?>
             <tr>
                 <td colspan="3" style="text-align:right;"><?= lang('Sales.service_charge') ?></td>
                 <td style="text-align:right;"><?= to_currency($service_charge) ?></td>
             </tr>
         <?php } ?>
 
-        <?php if ((float) ($bill_discount ?? 0) !== 0) { ?>
+        <?php if ((float) ($bill_discount ?? 0) != 0) { ?>
             <tr>
                 <td colspan="3" style="text-align:right;"><?= lang('Sales.bill_discount') ?></td>
                 <td style="text-align:right;"><?= to_currency($bill_discount * -1) ?></td>

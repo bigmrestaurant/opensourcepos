@@ -183,7 +183,7 @@ class Sale_lib
         $filtered_cart = [];
 
         foreach ($cart as $k => $v) {    // TODO: We should not be using single-letter variable names for readability.  Several of these foreach loops should be refactored.
-            if ($v['print_option'] === PRINT_YES) {
+            if ((int) $v['print_option'] === PRINT_YES) {
                 if ($v['price'] === 0.0) {
                     $v['discount'] = 0.0;
                 }
