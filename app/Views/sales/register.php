@@ -858,7 +858,7 @@ if ($employee->has_grant('reports_sales', session('person_id'))) {
 
 <?php if (isset($bigm_card_total)) { ?>
         // BigM: refresh the GST line + total the instant the payment type changes,
-        // mirroring the old POS "cash 16% / card 5%" preview. Bound after
+        // mirroring the old POS "cash 16% / card 8%" preview. Bound after
         // check_payment_type so it has the final word on the displayed amounts.
         $('#payment_types').change(bigm_update_payment_tax);
         bigm_update_payment_tax();
@@ -989,7 +989,7 @@ if ($employee->has_grant('reports_sales', session('person_id'))) {
     }
 
 <?php if (isset($bigm_card_total)) { ?>
-    // BigM: cash is taxed at the standard GST rate, card at 5%. Swap the GST row,
+    // BigM: cash is taxed at the standard GST rate, card at 8%. Swap the GST row,
     // subtotal+tax total, amount due and amount tendered client-side so the
     // cashier sees the correct figures immediately. Service charge and discount
     // stay in the payment section and only affect amount due.

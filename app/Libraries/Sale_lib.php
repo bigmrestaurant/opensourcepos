@@ -45,7 +45,7 @@ class Sale_lib
         'receipt_short',
         'receipt_bigm',
     ];
-    private const CARD_TAX_PERCENT = '5.00';
+    private const CARD_TAX_PERCENT = '8.00';
 
     private Attribute $attribute;
     private Customer $customer;
@@ -1735,7 +1735,7 @@ class Sale_lib
     }
 
     /**
-     * Force 5% GST on item-level tax rows when paying by card.
+     * Force 8% GST on item-level tax rows when paying by card.
      */
     public function apply_card_tax_details(array $taxDetails, array $cart): array
     {

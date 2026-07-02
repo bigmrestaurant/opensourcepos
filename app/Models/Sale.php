@@ -1049,7 +1049,7 @@ class Sale extends Model
      * Gets sale payment options.
      *
      * BigM: the restaurant only accepts two tender types - Cash and Card.
-     * Card (credit) is taxed at 5% GST, cash at the standard rate. All other
+     * Card (credit) is taxed at 8% GST, cash at the standard rate. All other
      * OSPOS payment types (gift card, rewards, due, cheque, deposits, etc.) are
      * intentionally omitted to mirror the legacy POS.
      */

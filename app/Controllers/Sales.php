@@ -1921,7 +1921,7 @@ class Sales extends Secure_Controller
     }
 
     /**
-     * Apply BigM's card tax rule (5% GST on card payments instead of the
+     * Apply BigM's card tax rule (8% GST on card payments instead of the
      * standard item tax) to the totals before the sale is saved/printed.
      *
      * @param array<string, mixed> $data
@@ -1941,7 +1941,7 @@ class Sales extends Secure_Controller
         // hold the standard cash figures at this point.
         $this->populate_bigm_payment_previews($data);
 
-        // Legacy BigM rule: cash always wins. The card rate (5% GST) applies only
+        // Legacy BigM rule: cash always wins. The card rate (8% GST) applies only
         // when the sale is settled entirely by card. If any cash payment is present
         // the standard (cash) tax rate is used. Before any payment is entered we fall
         // back to the selected payment type so the on-screen total previews correctly.

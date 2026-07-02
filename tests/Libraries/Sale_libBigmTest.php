@@ -6,7 +6,7 @@ use App\Libraries\Sale_lib;
 use CodeIgniter\Test\CIUnitTestCase;
 
 /**
- * Guards the BigM card-payment detection that switches GST from 16% to 5%.
+ * Guards the BigM card-payment detection that switches GST from 16% to 8%.
  *
  * The downstream total math (get_card_total / apply_card_tax_details) reads the
  * customer model and OSPOS settings, so it belongs in a DB-backed integration

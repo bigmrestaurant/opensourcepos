@@ -125,7 +125,7 @@ class PraFbrService
     {
         $payments      = $saleData['payments'] ?? [];
         $isCash        = $this->paymentIncludesCash($payments);
-        $taxRate       = $isCash ? 16 : 5;
+        $taxRate       = $isCash ? 16 : 8;
         $serviceCharge = (float) ($saleData['service_charge'] ?? 0);
         $billDiscount  = (float) ($saleData['bill_discount'] ?? 0);
 
