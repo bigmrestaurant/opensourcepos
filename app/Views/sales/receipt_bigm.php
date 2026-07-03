@@ -245,16 +245,18 @@ $receiptFontSize = max(1, (int) ($config['receipt_font_size'] ?? 12));
             <td style="text-align:right;"><?= to_currency($total) ?></td>
         </tr>
 
-        <?php if (count($payments) === 1) {
-            $splitpayment = explode(':', $payments[0]['payment_type']);
+        <?php
+        $payment_rows = array_values($payments ?? []);
+        if (count($payment_rows) === 1) {
+            $splitpayment = explode(':', (string) ($payment_rows[0]['payment_type'] ?? ''));
             ?>
             <tr>
                 <td colspan="3" style="text-align:right;"><?= lang('Sales.payment') ?></td>
                 <td style="text-align:right;"><?= esc($splitpayment[0]) ?></td>
             </tr>
         <?php } else {
-            foreach ($payments as $payment) {
-                $splitpayment = explode(':', $payment['payment_type']);
+            foreach ($payment_rows as $payment) {
+                $splitpayment = explode(':', (string) ($payment['payment_type'] ?? ''));
                 ?>
                 <tr>
                     <td colspan="3" style="text-align:right;"><?= lang('Sales.payment') . ' (' . esc($splitpayment[0]) . ')' ?></td>
